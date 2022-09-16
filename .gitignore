@@ -1,3 +1,6 @@
+#local copy of ethereum nodes
+database
+
 # Logs
 logs
 *.log
