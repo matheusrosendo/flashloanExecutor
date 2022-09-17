@@ -5,6 +5,8 @@ import "./aave/ILendingPoolAddressesProvider.sol";
 import "./aave/ILendingPool.sol";
 
 contract Flashloan is FlashLoanReceiverBase {
+    uint256 counter;
+
     event LoggerExecuteOperation( address _reserve,
         uint256 currentBalance,
         uint256 _amount,
@@ -13,7 +15,17 @@ contract Flashloan is FlashLoanReceiverBase {
         uint256 currentBalance,
         uint256 _amount);
 
-    constructor(address _addressProvider) FlashLoanReceiverBase(_addressProvider) public {}
+    constructor(address _addressProvider) FlashLoanReceiverBase(_addressProvider) public {
+        counter = 0;
+    }
+
+    function incrementer(uint256 _incr) public onlyOwner{
+        counter = counter + _incr;
+    }
+
+    function getCounter() public view returns (uint256){
+        return counter;
+    }
 
     /**
         This function is called after your contract has received the flash loaned amount
@@ -44,14 +56,13 @@ contract Flashloan is FlashLoanReceiverBase {
     /**
         Flash loan 1000000000000000000 wei (1 ether) worth of `_asset`
      */
-    function flashloan(address _asset) public onlyOwner {
+    function flashloan(address _asset, uint256 _amount) public onlyOwner {
         bytes memory data = "";
-        uint amount = 1 ether;
 
         uint256 currentBalance = getBalanceInternal(address(this), _asset);
-        emit LoggerFlashloan(_asset, currentBalance, amount);
+        emit LoggerFlashloan(_asset, currentBalance, _amount);
 
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
-        lendingPool.flashLoan(address(this), _asset, amount, data);
+        lendingPool.flashLoan(address(this), _asset, _amount, data);
     }
 }
