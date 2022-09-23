@@ -227,7 +227,7 @@ async function sendTokenNoSign(_contractInstance, _toAddress, _fromAddress, _net
             try {
                 console.log("### execute flashloan ###"); 
                 if(process.env.NETWORK == "development"){
-                    let DAIamountInWei = Web3.utils.toWei('10000');
+                    let DAIamountInWei = Web3.utils.toWei('10');
                     let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
                     let FlashloanRawTx = {
                         from: process.env.DEV_ADDRESS,
