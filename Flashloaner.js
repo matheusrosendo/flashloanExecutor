@@ -1,7 +1,7 @@
 const Web3 = require('web3')
 require("dotenv").config({path: ".env"});
 const truffleconfig = require("./truffle-config.js");
-const Flashloan = require("./build/contracts/Flashloan.json");
+const Flashloan = require("./build/contracts/FlashloanAAVEv1");
 let contractDai;
 
 
@@ -96,7 +96,8 @@ async function sendTokenNoSign(_contractInstance, _toAddress, _fromAddress, _net
                     }
                     console.log(receipt);
                 });
-                console.log("### ETH and DAI sent ###")
+                console.log("### ETH and DAI sent ###");
+                
             } 
             //send some DAI and ETH from dev account to flashloan contract  (signed transactions)
             else {
@@ -279,44 +280,67 @@ async function sendTokenNoSign(_contractInstance, _toAddress, _fromAddress, _net
             }
             
         break;
-        case '6': //print last block
-            let block2 = await Web3js.eth.getBlock("latest");
-            console.log(block2.number);
-        break;
+        case '6': //execute flash loan uniswapv2
+            try {
+                console.log("### execute flashloan ###"); 
+                if(process.env.NETWORK == "development"){
+                    let DAIamountInWei = Web3.utils.toWei('50');
+                    //DAI -> USDC (uniswap) | USDC -> USDT (Sushi) | USDT -> DAI (Uniswap)
+                    let addressData = ["0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", "0x6B175474E89094C44Da98b954EedeAC495271d0F", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xdAC17F958D2ee523a2206206994597C13D831ec7", "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", "0xdAC17F958D2ee523a2206206994597C13D831ec7", "0x6B175474E89094C44Da98b954EedeAC495271d0F"];
+                    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
+                    let FlashloanRawTx = {
+                        from: process.env.DEV_ADDRESS,
+                        chainId:network_id,
+                        gasLimit: 12000000,
+                        gasPrice: 0
+                    };
+                    let response = await flashloanContract.methods.flashloanUniswapV2(DAIamountInWei, addressData).send(FlashloanRawTx);        
+                    console.log(response);
+                    exit();
+                    
+                } else {
+                
+                    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
+                    
+                    //declara raw tx
+                    let FlashloanRawTx = {
+                        from: process.env.DEV_ADDRESS,
+                        data: flashloanContract.methods.flashloan(DAItokenAddress).encodeABI(),
+                        chainId:network_id,
+                        gasLimit: 12000000,
+                        gasPrice: 0
+                    };
 
-        case '7': //increment counter test variable
-            console.log("### incrementing uint account value ###"); 
-            let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
-            let FlashloanRawTx = {
-                from: process.env.DEV_ADDRESS,
-                chainId:network_id,
-                gasLimit: 12000000,
-                gasPrice: 0
-            };
-            let response = await flashloanContract.methods.incrementer(2).send(FlashloanRawTx);        
-            console.log(response);
-            exit();
+                    //sign tx
+                    let flashloanSignedTxPromise = Web3js.eth.signTransaction(FlashloanRawTx, process.env.DEV_PK);
+                    
+                    //handle tx response 
+                    flashloanSignedTxPromise.then((signedTx)=>{
+                        let sentTx = Web3js.eth.sendSignedTransaction(signedTx.raw);
+                        sentTx.on("receipt", (receipt) => {
+                            console.log("### tx sent successfully: ###");
+                            console.log(receipt);
+                        });
+                        sentTx.on("error", (err) => {
+                            console.log("### send tx error: ###");
+                            console.log(err);
+                            //exit();
+                        });
+                    }).catch((err) =>{
+                        console.log("### sign tx error: ###");
+                        console.log(err);
+                        //exit();
+                    })
+                }
+                
+            } catch (error) {
+                console.log("Error: "+error);
+            }
+            
         break;
-        case '8': //show counter test variable
-            console.log("### uint account value: ###"); 
-            let flashloanContract2 = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
-            let amount = await flashloanContract2.methods.getCounter().call();
-            console.log(amount);
-            exit();
-        break;
-        case '9': //withdraw from flashloan contract to dev account
-            console.log("### withdraw from flashloan contract to dev account ###"); 
-            let flashloanContract3 = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
-            let FlashloanRaw = {
-                from: process.env.DEV_ADDRESS,
-                chainId:network_id,
-                gasLimit: 12000000,
-                gasPrice: 0
-            };
-            let receiptWithdraw = await flashloanContract3.methods.withdraw(DAItokenAddress).send(FlashloanRaw);
-            console.log(receiptWithdraw);
-            exit();
-        break;
+        
+
+       
         case '10': //show main address
             console.log("flashloanAddress: "+flashloanAddress);
             console.log("DAItokenAddress: "+DAItokenAddress);
@@ -333,6 +357,43 @@ async function sendTokenNoSign(_contractInstance, _toAddress, _fromAddress, _net
             let DAIbalanceLendigPool = await contractDai.methods.balanceOf(lendingPoolAddress).call();
             console.log("DAI Balance: "+parseFloat(Web3.utils.fromWei(DAIbalanceLendigPool)).toFixed(2));
             exit();
+        break;
+        case '12': //increment counter test variable
+            console.log("### incrementing uint account value ###"); 
+            let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
+            let FlashloanRawTx = {
+                from: process.env.DEV_ADDRESS,
+                chainId:network_id,
+                gasLimit: 12000000,
+                gasPrice: 0
+            };
+            let response = await flashloanContract.methods.incrementer(2).send(FlashloanRawTx);        
+            console.log(response);
+            exit();
+        break;
+        case '13': //show counter test variable
+            console.log("### uint account value: ###"); 
+            let flashloanContract2 = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
+            let amount = await flashloanContract2.methods.getCounter().call();
+            console.log(amount);
+            exit();
+        break;
+        case '14': //withdraw from flashloan contract to dev account
+            console.log("### withdraw from flashloan contract to dev account ###"); 
+            let flashloanContract3 = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
+            let FlashloanRaw = {
+                from: process.env.DEV_ADDRESS,
+                chainId:network_id,
+                gasLimit: 12000000,
+                gasPrice: 0
+            };
+            let receiptWithdraw = await flashloanContract3.methods.withdraw(DAItokenAddress).send(FlashloanRaw);
+            console.log(receiptWithdraw);
+            exit();
+        break;
+        case '15': //print last block
+            let block2 = await Web3js.eth.getBlock("latest");
+            console.log(block2.number);
         break;
 
         
