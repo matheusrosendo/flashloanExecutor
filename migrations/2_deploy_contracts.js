@@ -1,16 +1,15 @@
-let Flashloan = artifacts.require("Flashloan")
+let FlashloanAAVEv1 = artifacts.require("FlashloanAAVEv1")
 const truffleconfig = require("../truffle-config.js");
 
 module.exports = async function (deployer, network) {
     try {
 
-        let lendingPoolAddressesProviderAddress;
-        console.log("lendingPoolAddressesProviderAddress: "+truffleconfig.networks[network].lendingPoolAddressesProviderAddress)
+        console.log("lendingPoolAddressesProviderAddress: "+truffleconfig.networks[network].AAVEv1lendingPoolAddressesProviderAddress)
         
-        if (truffleconfig.networks[network].lendingPoolAddressesProviderAddress === undefined){
+        if (truffleconfig.networks[network].AAVEv1lendingPoolAddressesProviderAddress === undefined){
             throw Error(`Are you deploying to the correct network? (network selected: ${network})`)
         } else {
-            await deployer.deploy(Flashloan, truffleconfig.networks[network].lendingPoolAddressesProviderAddress)
+            await deployer.deploy(FlashloanAAVEv1, truffleconfig.networks[network].AAVEv1lendingPoolAddressesProviderAddress)
         }
 
     } catch (e) {

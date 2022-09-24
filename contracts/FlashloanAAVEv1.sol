@@ -1,10 +1,10 @@
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 import "./aave/FlashLoanReceiverBase.sol";
 import "./aave/ILendingPoolAddressesProvider.sol";
 import "./aave/ILendingPool.sol";
 
-contract Flashloan is FlashLoanReceiverBase {
+contract FlashloanAAVEv1 is FlashLoanReceiverBase {
     uint256 counter;
 
     event LoggerExecuteOperation( address _reserve,
@@ -49,7 +49,7 @@ contract Flashloan is FlashLoanReceiverBase {
         // !! Ensure that *this contract* has enough of `_reserve` funds to payback the `_fee` !!
         //
 
-        uint totalDebt = _amount.add(_fee);
+        uint totalDebt = _amount + _fee;
         transferFundsBackToPoolInternal(_reserve, totalDebt);
     }
 
