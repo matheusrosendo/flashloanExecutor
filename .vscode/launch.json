@@ -11,8 +11,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}\\FlashloanExecutor.js", 
-            "args": ["5"]
+            "program": "${file}",
+            "args": ["1"]
         }
     ]
 }
