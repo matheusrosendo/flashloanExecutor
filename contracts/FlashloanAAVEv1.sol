@@ -24,8 +24,8 @@ contract FlashloanAAVEv1 is FlashLoanReceiverBase {
         uint256 oldBalance,
         uint256 newBalance);
     
-
-    constructor(address _addressProvider, SwapUniswapV2 _swapInstance) FlashLoanReceiverBase(_addressProvider) public {
+    //pass to parent constructor the AAVEv1lendingPoolAddressesProviderAddress 
+    constructor(SwapUniswapV2 _swapInstance) FlashLoanReceiverBase(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8) public {
         swaps = _swapInstance;
     }
 

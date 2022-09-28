@@ -318,8 +318,9 @@ async function sendTokenNoSign(_contractInstance, _toAddress, _fromAddress, _net
                 let jsonFile = mode[1];
                 console.log("### execute flashloan from file "+jsonFile+" ###"); 
                 let parsedJson = parseJSONtoOjectList(jsonFile);
+                let Web3Flashloan =  new Web3(parsedJson.RPCprovider) 
                 let amountToBorrowOfFirstToken = Web3.utils.toWei(parseFloat(parsedJson.initialTokenAmount).toString());
-                let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
+                let flashloanContract = new Web3Flashloan.eth.Contract(Flashloan.abi, flashloanAddress, { from: process.env.DEV_ADDRESS })
                 let FlashloanRawTx = {
                     from: process.env.DEV_ADDRESS,
                     chainId:network_id,

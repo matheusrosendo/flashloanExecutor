@@ -19,6 +19,9 @@
     "truffle": "^5.1.32"
   },
   "scripts": {
-    "start": "ganache-cli -b 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 9545 --db database/ethereum-fork2 -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" "
+    "ethereum_fork_start": "ganache-cli -b 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8001 --db database/ethereum-fork2 -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
+    "ethereum_fork_update": "ganache-cli --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8002 --db database/ethereum-fork-update -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
+    "bsc_fork_start": "ganache-cli -b 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8011 --db database/bsc-fork1 -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
+    "bsc_fork_update": "ganache-cli --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8012 --db database/bsc-fork-update -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" "
   }
 }
