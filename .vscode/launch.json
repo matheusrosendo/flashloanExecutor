@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "program": "${file}",
-            "args": ["7", "E:\\Dev\\Estudos\\BlockchainDev\\FlashLoans\\botArbitrage\\FlashloanInput\\flashpath_2022-09-26_11-06.json"]
+            "args": ["8", "ethereum_fork_update\\FlashloanInput"]
         }
     ]
 }
