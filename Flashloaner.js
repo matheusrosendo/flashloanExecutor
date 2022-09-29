@@ -91,6 +91,20 @@ function executeFlashloanPromisse (network, parsedJson){
     return flashloanContract.methods.flashloanUniswapV2(amountToBorrowOfFirstToken, parsedJson.addressPath).send(FlashloanRawTx);                     
 }
 
+function withdrawToken (_network, _tokenAddress){
+    console.log("### Withdrawing profits in DAI ###"); 
+    let Web3js = getWeb3Instance(_network);
+    
+    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].DEV_ADDRESS })
+    let FlashloanRawTx = {
+        from: truffleConfig.networks[_network].DEV_ADDRESS,
+        chainId:truffleConfig.networks[_network].network_id,
+        gasLimit: 12000000,
+        gasPrice: 0
+    };
+    return flashloanContract.methods.withdraw(_tokenAddress).send(FlashloanRawTx);                     
+}
+
 
 (async () => {
     console.time('Total Execution Time');    
@@ -227,6 +241,27 @@ function executeFlashloanPromisse (network, parsedJson){
             console.log("ETHbalanceDevAccount = " + Web3.utils.fromWei(ETHbalanceDevAccount));
             exit();
         break;
+        case '5': //withdraw DAI to owner
+            try {
+
+                //verify current DAI amount
+                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: truffleConfig.networks[network].DEV_ADDRESS });
+                let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
+                if (parseInt(DAIbalanceFlashloanContract) > 0){
+                    let response = await withdrawToken(network, DAItokenAddress);
+                    if (response){
+                        let DAIwithdrawn = parseInt(response.events.LogWithdraw.returnValues.amount);
+                        console.log("#### CONGRATS!!! "+parseFloat(DAIwithdrawn / Math.pow(10, 18) ).toFixed(2)+" DAI withdrawn with success! ####")
+                        console.log("tx: "+response.transactionHash);                    
+                    }
+                } else {
+                    console.log("### NO BALANCE of DAI found for "+flashloanAddress);
+                }
+                
+            } catch (error) {
+                console.log("Error: "+error);
+            }
+        break;
 
         case '7': //execute flash loan reading from a specific file
             try {
@@ -288,9 +323,7 @@ function executeFlashloanPromisse (network, parsedJson){
             }
         
         break;
-        case '9': //show main address
-            Files.deleteFile(mode[1]);
-        break;
+        
         
 
         case '10': //show main address
@@ -342,7 +375,7 @@ function executeFlashloanPromisse (network, parsedJson){
         
     }
     console.timeEnd('Total Execution Time');
-    console.log("######################### END FLASHLOAN EXECUTION #########################");
+    console.log("######################### END FLASHLOAN EXECUTION #########################\n");
     exit();
     
 })();
