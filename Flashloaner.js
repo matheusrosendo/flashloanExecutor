@@ -76,8 +76,26 @@ async function executeFlashloan (network, parsedJson){
     return response;             
 }
 
+function executeFlashloanPromisse (network, parsedJson){
+    console.log("### Executing flashloan on "+network+" of $"+parsedJson.initialAmountInUSD+" to path "+parsedJson.path+" ###"); 
+    let Web3js = getWeb3Instance(network);
+    
+    let amountToBorrowOfFirstToken = Web3.utils.toWei(parseFloat(parsedJson.initialTokenAmount).toString());
+    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].DEV_ADDRESS })
+    let FlashloanRawTx = {
+        from: truffleConfig.networks[network].DEV_ADDRESS,
+        chainId:truffleConfig.networks[network].network_id,
+        gasLimit: 12000000,
+        gasPrice: 0
+    };
+    return flashloanContract.methods.flashloanUniswapV2(amountToBorrowOfFirstToken, parsedJson.addressPath).send(FlashloanRawTx);                     
+}
+
 
 (async () => {
+    console.time('Total Execution Time');    
+    console.log("######################### START FLASHLOAN EXECUTION #########################");
+
     //read arguments
     let mode = process.argv.filter((item, index) =>{return index >= 2})
     let network;
@@ -213,51 +231,60 @@ async function executeFlashloan (network, parsedJson){
         case '7': //execute flash loan reading from a specific file
             try {
                 let parsedJson = Files.parseJSONtoOjectList(mode[1]);
+                if(parsedJson == undefined){
+                    throw("Error: file not found "+mode[1]);
+                }
                 network = parsedJson.network;
                 
                 let response = await executeFlashloan(network, parsedJson);
-                let serializedFile = serializeResult(response, parsedJson, mode[1], network);
+                let serializedFile = await serializeResult(response, parsedJson, mode[1], network);
                 console.log(serializedFile.result);
                 //remove original input file
                 if(serializedFile){
                     Files.deleteFile(mode[1]);
                 }
-                exit();
                 
             } catch (error) {
                 console.log("Error: "+error);
             }
         
         break;
+        
         case '8': //search for a new file on flashloan input folder and execute it
             try {
-                //joining path of directory 
+                //search for files on the given folder name passed as parameter
                 const directoryPath = path.join(__dirname, mode[1]);
-                //passsing directoryPath and callback function
-                fs.readdir(directoryPath, async function (err, files) {
-                    //handling error
-                    if (err) {
-                        return console.log('Error: unable to scan directory: ' + err);
-                    } 
-                    //listing all files using forEach
-                    files.forEach(async function (file) {
-                        let completeFileName = path.join(directoryPath, file);;
+                
+                let filePromise = new Promise ((resolve, reject)=>{
+                    fs.readdir(directoryPath, async function (err, files) {
+                        if (err) {
+                            reject('Error: unable to scan directory: ' + err);
+                        } 
+                       resolve(files);
+                    });
+                })
+                let resolvedFiles = await Promise.resolve(filePromise);
+                if(resolvedFiles.length == 0){
+                    console.log("##### None new file found in "+directoryPath+" #####")
+                } else {
+                    let promiseFileList = resolvedFiles.map(async (file) => {                  
+                        let completeFileName = path.join(directoryPath, file);
                         let parsedJson = Files.parseJSONtoOjectList(completeFileName);
                         network = parsedJson.network;
                         
-                        let response = await executeFlashloan(network, parsedJson);
-                        let serializedFile = serializeResult(response, parsedJson, completeFileName, network);
+                        let response = await executeFlashloanPromisse(network, parsedJson);
+                        let serializedFile = await serializeResult(response, parsedJson, completeFileName, network);
                         console.log(serializedFile.result);
                         //remove original input file
                         if(serializedFile){
                             Files.deleteFile(completeFileName);                        
                         }
+                        return serializedFile;
                     });
-                });
-                
-                
+                    await Promise.all(promiseFileList);
+                }
             } catch (error) {
-                console.log("Error: "+error);
+                throw("Error: "+error);
             }
         
         break;
@@ -303,7 +330,19 @@ async function executeFlashloan (network, parsedJson){
         case '16': 
             console.log("hello arbitrageur!");
         break;
+
+        default:
+            try{
+                
+                console.log("1"+process.env.TOKEN_ENV+"2")
+            } catch (erro) {
+                console.log(erro);
+            } 
+        break;  
         
     }
+    console.timeEnd('Total Execution Time');
+    console.log("######################### END FLASHLOAN EXECUTION #########################");
+    exit();
     
 })();

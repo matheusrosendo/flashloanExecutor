@@ -12,7 +12,8 @@
                 "<node_internals>/**"
             ],
             "program": "${file}",
-            "args": ["8", "ethereum_fork_update\\FlashloanInput"]
+            "args": ["8.1", "ethereum_fork_update/FlashloanInput"]
+            //"args": ["7", "E:/Dev/Estudos/BlockchainDev/FlashLoans/flashloaner/ethereum_fork_update/FlashloanInput/teste.json"]
         }
     ]
 }
