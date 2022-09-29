@@ -1,6 +1,10 @@
 #local copy of ethereum nodes
 database
 
+#folders with flashloan inputs and outputs
+FlashloanInput
+FlashloanExecuted
+
 # Logs
 logs
 *.log

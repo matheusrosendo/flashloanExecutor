@@ -1,7 +1,8 @@
 const fs = require("fs");
 const Web3 = require('web3');
 const Flashloan = require("./build/contracts/FlashloanAAVEv1");
-const truffleConfig = require("./truffle-config.js");
+//const truffleConfig = require("./truffle-config.js");
+const HDWalletProvider = require("@truffle/hdwallet-provider")
 
 function exit(){
     process.exit();
@@ -23,9 +24,12 @@ function parseJSONtoOjectList(_file){
     let mode = process.argv.filter((item, index) =>{return index >= 2})
     let jsonFile = mode[1];
 
+    let provider = new HDWalletProvider("please loud skin soccer slender invest thank brick blue shallow day ivory", "https://ropsten.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc");
     //read flashloan config file and set Web3 instance
     console.log("### reading flashloan config file "+jsonFile+" ###"); 
-    let parsedJson = parseJSONtoOjectList(jsonFile); 
+    console.log("### DEV ACCCOUNT KEY = "+process.env.DEPLOYMENT_ACCOUNT_KEY+" ###"); 
+    
+    /* let parsedJson = parseJSONtoOjectList(jsonFile); 
     let network = parsedJson.network;
     console.log("### network: "+network+" ###"); 
     let Web3js = new Web3("http://"+truffleConfig.networks[network].host+":"+truffleConfig.networks[network].port);
@@ -89,7 +93,7 @@ function parseJSONtoOjectList(_file){
                 console.log(receipt);
             });
             console.log("### ETH and DAI sent ###");
-            exit()
+                
             
         break;
         case '2': //Fund Flashloan smart contract with DAI
@@ -182,7 +186,7 @@ function parseJSONtoOjectList(_file){
         break;
         case '7': //execute flash loan reading from file
             try {
-                console.log("### Executing flashloan of $"+parsedJson.initialAmountInUSD+" to path "+parsedJson.path+" ###"); 
+                console.log("### Executing flashloan of $"+parsedJson.initialAmountinUSD+" to path "+parsedJson.path+" ###"); 
                 
                 let amountToBorrowOfFirstToken = Web3.utils.toWei(parseFloat(parsedJson.initialTokenAmount).toString());
                 let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: truffleConfig.networks[network].DEV_ADDRESS })
@@ -242,6 +246,6 @@ function parseJSONtoOjectList(_file){
         break;
         
     }
-    
+     */
 
 })();

@@ -1,7 +1,6 @@
 let AddressCoderLib = artifacts.require("AddressCoder");
 let SwapUniswapV2 = artifacts.require("SwapUniswapV2");
 let FlashloanAAVEv1 = artifacts.require("FlashloanAAVEv1")
-const config = require("../config.json");
 const truffleConfig = require("../truffle-config.js");
 
 module.exports = async function (deployer, network) {
