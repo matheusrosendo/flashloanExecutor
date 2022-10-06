@@ -52,15 +52,12 @@ contract FlashloanAAVEv1 is FlashLoanReceiverBase {
         //execute swaps
         executeUniswapV2(_amount, addressessArray);
 
-        uint256 newBalance = getBalanceInternal(address(this), _reserve);
-        emit LoggerBalance(_reserve, currentBalance, newBalance);
-
         uint totalDebt = _amount + _fee;
         transferFundsBackToPoolInternal(_reserve, totalDebt);
     }
 
     /**
-        Flash loan 1000000000000000000 wei (1 ether) worth of `_asset`
+        Generic function (no logic)
      */
     function flashloan(address _asset, uint256 _amount) public onlyOwner {
         bytes memory data = "";
@@ -69,7 +66,7 @@ contract FlashloanAAVEv1 is FlashLoanReceiverBase {
         emit LoggerFlashloan(_asset, currentBalance, _amount);
 
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
-        lendingPool.flashLoan(address(this), _asset, _amount, data);
+        lendingPool.flashLoan(address(this), _asset, _amount, data);        
     }
 
     
@@ -84,6 +81,10 @@ contract FlashloanAAVEv1 is FlashLoanReceiverBase {
 
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         lendingPool.flashLoan(address(this), _addrArr[1], _amountInitialIn, byteAddressess);
+
+        //shows new old and new balances of token _asset
+        uint256 newBalance = getBalanceInternal(address(this), _addrArr[1]);
+        emit LoggerBalance(_addrArr[1], currentBalance, newBalance);
     }
 
 

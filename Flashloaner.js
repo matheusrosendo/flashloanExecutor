@@ -5,6 +5,7 @@ const Flashloan = require("./build/contracts/FlashloanAAVEv1");
 const truffleConfig = require("./truffle-config.js");
 const Files = require("./Files.js");
 const Util = require("./Util.js");
+require("dotenv").config({path: ".env"});
 
 //global variables
 let web3Instance;
@@ -30,6 +31,15 @@ function getWeb3Instance(_network){
     return  web3Instance; 
 }
 
+async function getCurrentBlock(_network){
+    let block;
+    try {
+        block = await getWeb3Instance(_network).eth.getBlock("latest");
+    } catch (error) {
+        throw("Error trying to get block, verify connection with "+"http://"+truffleConfig.networks[_network].host+":"+truffleConfig.networks[_network].port);
+    }
+    return block;
+}
 
 async function serializeResult(_response, _parsedJson, _inputFileName, _network){
     let serializedFile;
@@ -60,30 +70,15 @@ async function serializeResult(_response, _parsedJson, _inputFileName, _network)
     return serializedFile;
 }
 
-async function executeFlashloan (network, parsedJson){
-    console.log("### Executing flashloan on "+network+" of $"+parsedJson.initialAmountInUSD+" to path "+parsedJson.path+" ###"); 
-    let Web3js = getWeb3Instance(network);
-    
-    let amountToBorrowOfFirstToken = Web3.utils.toWei(parseFloat(parsedJson.initialTokenAmount).toString());
-    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].DEV_ADDRESS })
-    let FlashloanRawTx = {
-        from: truffleConfig.networks[network].DEV_ADDRESS,
-        chainId:truffleConfig.networks[network].network_id,
-        gasLimit: 12000000,
-        gasPrice: 0
-    };
-    let response = await flashloanContract.methods.flashloanUniswapV2(amountToBorrowOfFirstToken, parsedJson.addressPath).send(FlashloanRawTx);        
-    return response;             
-}
 
 function executeFlashloanPromisse (network, parsedJson){
     console.log("### Executing flashloan on "+network+" of $"+parsedJson.initialAmountInUSD+" to path "+parsedJson.path+" ###"); 
     let Web3js = getWeb3Instance(network);
     
     let amountToBorrowOfFirstToken = Web3.utils.toWei(parseFloat(parsedJson.initialTokenAmount).toString());
-    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].DEV_ADDRESS })
+    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
     let FlashloanRawTx = {
-        from: truffleConfig.networks[network].DEV_ADDRESS,
+        from: truffleConfig.networks[network].EXECUTOR_ADDRESS,
         chainId:truffleConfig.networks[network].network_id,
         gasLimit: 12000000,
         gasPrice: 0
@@ -95,9 +90,9 @@ function withdrawToken (_network, _tokenAddress){
     console.log("### Withdrawing profits in DAI ###"); 
     let Web3js = getWeb3Instance(_network);
     
-    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].DEV_ADDRESS })
+    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].EXECUTOR_ADDRESS })
     let FlashloanRawTx = {
-        from: truffleConfig.networks[_network].DEV_ADDRESS,
+        from: truffleConfig.networks[_network].EXECUTOR_ADDRESS,
         chainId:truffleConfig.networks[_network].network_id,
         gasLimit: 12000000,
         gasPrice: 0
@@ -105,54 +100,128 @@ function withdrawToken (_network, _tokenAddress){
     return flashloanContract.methods.withdraw(_tokenAddress).send(FlashloanRawTx);                     
 }
 
+function withdrawTokenSigned (_network, _tokenAddress){
+    console.log("### Withdrawing profits in DAI ###"); 
+    let Web3js = getWeb3Instance(_network);
+    
+    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].EXECUTOR_ADDRESS })
+        
+    
+    let FlashloanRawTx = {
+        from: truffleConfig.networks[_network].EXECUTOR_ADDRESS,
+        chainId:truffleConfig.networks[_network].network_id,
+        gasLimit: 12000000,
+        gasPrice: 0
+    };
+
+    //sign tx
+    let signedTxPromise = Web3js.eth.signTransaction(FlashloanRawTx, truffleConfig.networks[_network].DEV_PK);
+                
+    //handle response tx
+    signedTxPromise.then((signedTx)=>{
+        let sentTx = flashloanContract.methods.withdraw(_tokenAddress).sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
+        
+        sentTx.on("receipt", (receipt) => {
+            console.log("### tx sent successfully: ###");
+            console.log(receipt);
+        });
+        sentTx.on("error", (err) => {
+            console.log("### send tx error: ###");
+            console.log(err);
+            //exit();
+        });
+    }).catch((err) =>{
+        console.log("### sign tx error: ###");
+        console.log(err);
+        //exit();
+    })
+    return signedTxPromise;                     
+}
+
+/**
+ * Verifies if contract was deployed and the owner is the informed address
+ * @param {*} _network 
+ * @param {*} _address 
+ * @returns 
+ */
+async function isContractOk(_network, _OwnerAddress){
+    try {
+        let Web3js = getWeb3Instance(_network);
+        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address)
+        let owner = await flashloanContract.methods.owner().call(); Flashloan
+        if (owner == _OwnerAddress){
+            return true;
+        } else {
+            console.log("Error: contract found but owner is not the informed address, owner found = "+owner);
+            return false;
+        }        
+    } catch (error) {
+        return false;
+    }
+}
+
+async function getOwner(_network, _contract){
+    try {
+        let Web3js = getWeb3Instance(_network);
+        let flashloanContract = new Web3js.eth.Contract(_contract.abi, _contract.networks[truffleConfig.networks[_network].network_id].address)
+        let owner = await flashloanContract.methods.owner().call(); 
+        return owner;
+    } catch (error) {
+        console.log("Error: "+error);
+    }
+}
 
 (async () => {
     console.time('Total Execution Time');    
     console.log("######################### START FLASHLOAN EXECUTION #########################");
 
-    //read arguments
+    //read and verify arguments
     let mode = process.argv.filter((item, index) =>{return index >= 2})
-    let network;
-    let Web3js;
-    let DAIcontract, DAIcontractABI, network_id, DAItokenAddress, DaiAmountFromRich, EthAmountFromRich;
-    let flashloanAddress;
-
-    //from 0 to 5 it expect the name of the network as second parameter
-    if(parseInt(mode[0]) <= 5){
-        network = mode[1];
-        if(truffleConfig.networks[network] == undefined){
-            throw("Error: invalid network name = "+network);
-        }
-        console.log("### network: "+network+" ###"); 
-        Web3js = getWeb3Instance(network);
-
-        //set some variables used to transfer initial amounts to contract and dev account (local forks only)
-        DAIcontract;  
-        DAIcontractABI = truffleConfig.networks[network].DAIabi;
-        network_id = truffleConfig.networks[network].network_id;
-        DAItokenAddress = truffleConfig.networks[network].DAIcontract;   
-        flashloanAddress = Flashloan.networks[network_id].address;    
-        DaiAmountFromRich = '10000';
-        EthAmountFromRich = '2';
+    if(mode.length < 2){
+        console.log("Error invalid call, less than 2 parameters. Ex: Node .\\Flashloaner.js 5 ethereum_fork_update ");
+        exit();
     }
 
-   
+    //set network and some variables used to transfer initial amounts to contract and dev account (local forks only)
+    let network = mode[1];
+    if(truffleConfig.networks[network] == undefined){
+        throw("Error: invalid network name = "+network);
+    }
+    console.log("### network: "+network+" ###"); 
+    let Web3js = getWeb3Instance(network);   
+    let currentBlock = await getCurrentBlock(network);
+    let DAIcontract;  
+    let DAIcontractABI = truffleConfig.networks[network].DAIabi;
+    let network_id = truffleConfig.networks[network].network_id;
+    let DAItokenAddress = truffleConfig.networks[network].DAIcontract;   
+    let flashloanAddress = Flashloan.networks[network_id].address; 
+    let executorAddress = truffleConfig.networks[network].EXECUTOR_ADDRESS;  
+
+    let truffleAddressAccount = "0xAC3bAE300eBA121510A444ab378EC7D065789F49";
 
     switch(mode[0]){
         case '1': //get some ETH from a rich account and send to dev and flashloan contract  (development mode only)
-         
+        console.log("######### Mode 1 | GET DAI and ETH #########");
             //send ETH from rich account to my dev account
             await Web3js.eth.sendTransaction({
                 from: truffleConfig.networks[network].RICH_ADDRESS, 
-                to: truffleConfig.networks[network].DEV_ADDRESS , 
-                value: Web3.utils.toWei(EthAmountFromRich)
+                to: executorAddress, 
+                value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
             })
+
+            //send ETH to truffle account
+            await Web3js.eth.sendTransaction({
+                from: truffleConfig.networks[network].RICH_ADDRESS, 
+                to: truffleAddressAccount, 
+                value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
+            })
+
 
             //send ETH from rich account to smart contract
             await Web3js.eth.sendTransaction({
                 from: truffleConfig.networks[network].RICH_ADDRESS, 
                 to: flashloanAddress, 
-                value: Web3.utils.toWei(EthAmountFromRich)
+                value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
             })
             
             //send DAI from rich account to my dev account
@@ -161,7 +230,7 @@ function withdrawToken (_network, _tokenAddress){
                 from: truffleConfig.networks[network].RICH_ADDRESS,
                 to: DAItokenAddress,
                 value: 0,
-                data: DAIcontract.methods.transfer(truffleConfig.networks[network].DEV_ADDRESS , Web3.utils.toWei(DaiAmountFromRich)).encodeABI(),
+                data: DAIcontract.methods.transfer(executorAddress, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
                 gas: 200000,
                 chainId: network_id
             };            
@@ -177,7 +246,7 @@ function withdrawToken (_network, _tokenAddress){
                 from: truffleConfig.networks[network].RICH_ADDRESS,
                 to: DAItokenAddress,
                 value: 0,
-                data: DAIcontract.methods.transfer(flashloanAddress, Web3.utils.toWei(DaiAmountFromRich)).encodeABI(),
+                data: DAIcontract.methods.transfer(flashloanAddress, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
                 gas: 200000,
                 chainId: network_id
             };            
@@ -193,6 +262,7 @@ function withdrawToken (_network, _tokenAddress){
         break;
         
         case '2': //Fund Flashloan smart contract with DAI
+            console.log("######### Mode 2 | FUND SC FLASHLOAN WITH DAI #########");
             //get some DAI from a rich account  (development mode only)
             DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: truffleConfig.networks[network].RICH_ADDRESS })
             
@@ -201,7 +271,7 @@ function withdrawToken (_network, _tokenAddress){
                 from: truffleConfig.networks[network].RICH_ADDRESS,
                 to: DAItokenAddress,
                 value: 0,
-                data: DAIcontract.methods.transfer(flashloanAddress, Web3.utils.toWei(DaiAmountFromRich)).encodeABI(),
+                data: DAIcontract.methods.transfer(flashloanAddress, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
                 gas: 200000,
                 chainId: network_id,
             };            
@@ -216,36 +286,48 @@ function withdrawToken (_network, _tokenAddress){
             
         break;
 
-        case '3': //check flashloan contract DAI and ETH balances
-            console.log("### balances of contract "+flashloanAddress+" ###");
-            //check balance of DAI in the Flashloan Smartcontract
-            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: truffleConfig.networks[network].DEV_ADDRESS });
-            let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
-            console.log("DAIbalanceFlashloanContract (DAI)= " + Web3.utils.fromWei(DAIbalanceFlashloanContract));
-            console.log("DAIbalanceFlashloanContract (Wei DAI)= " + DAIbalanceFlashloanContract);
- 
-            let ETHbalanceFlashloanContract = await Web3js.eth.getBalance(flashloanAddress);
-            console.log("ETHbalanceFlashloanContract = " + Web3.utils.fromWei(ETHbalanceFlashloanContract));
-            exit();
+        // check flashloan contract DAI and ETH balances
+        // Ex: node .\Flashloaner.js 3 ethereum_fork_update
+        case '3': 
+        console.log("######### Mode 3 | VERIFY SC BALANCES #########");
+            if(isContractOk(network, executorAddress)){
+                console.log("### balances of contract "+flashloanAddress+" ###");
+                //check balance of DAI in the Flashloan Smartcontract
+                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: executorAddress});
+                let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
+                console.log("DAIbalanceFlashloanContract (DAI)= " + Web3.utils.fromWei(DAIbalanceFlashloanContract));
+                console.log("DAIbalanceFlashloanContract (Wei DAI)= " + DAIbalanceFlashloanContract);
+    
+                let ETHbalanceFlashloanContract = await Web3js.eth.getBalance(flashloanAddress);
+                console.log("ETHbalanceFlashloanContract = " + Web3.utils.fromWei(ETHbalanceFlashloanContract));
+                let ETHbalanceTreuffleAccount = await Web3js.eth.getBalance(truffleAddressAccount);
+                console.log("truffleAddressAccount = " + Web3.utils.fromWei(ETHbalanceTreuffleAccount));
+                exit();
+            }
 
         break;
-
-        case '4': //check dev account DAI and ETH balances
-            console.log("### balances of account "+truffleConfig.networks[network].DEV_ADDRESS+" ###");   
+        
+        // check dev account DAI and ETH balances
+        // Ex: node .\Flashloaner.js 4 ethereum_fork_update
+        case '4': 
+            console.log("######### Mode 4 | EXECUTOR ACCOUNT BALANCES #########");
+            console.log("### balances of account "+executorAddress+" ###");   
             //check balance of DAI in the Flashloan Smartcontract
-            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: truffleConfig.networks[network].RICH_ADDRESS });
-            let DAIbalanceDevAccount = await DAIcontract.methods.balanceOf(truffleConfig.networks[network].DEV_ADDRESS).call();
+            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress);
+            let DAIbalanceDevAccount = await DAIcontract.methods.balanceOf(executorAddress).call();
             console.log("DAIbalanceDevAccount = " + Web3.utils.fromWei(DAIbalanceDevAccount));
 
-            let ETHbalanceDevAccount = await Web3js.eth.getBalance(truffleConfig.networks[network].DEV_ADDRESS);
+            let ETHbalanceDevAccount = await Web3js.eth.getBalance(executorAddress);
             console.log("ETHbalanceDevAccount = " + Web3.utils.fromWei(ETHbalanceDevAccount));
             exit();
         break;
-        case '5': //withdraw DAI to owner
+        
+        //withdraw DAI to owner
+         // Ex: node .\Flashloaner.js 5 ethereum_fork_update
+        case '5': 
             try {
-
                 //verify current DAI amount
-                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: truffleConfig.networks[network].DEV_ADDRESS });
+                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: executorAddress});
                 let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
                 if (parseInt(DAIbalanceFlashloanContract) > 0){
                     let response = await withdrawToken(network, DAItokenAddress);
@@ -262,34 +344,74 @@ function withdrawToken (_network, _tokenAddress){
                 console.log("Error: "+error);
             }
         break;
-
-        case '7': //execute flash loan reading from a specific file
+        case '5.1': 
             try {
-                let parsedJson = Files.parseJSONtoOjectList(mode[1]);
-                if(parsedJson == undefined){
-                    throw("Error: file not found "+mode[1]);
+                //verify current DAI amount
+                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: executorAddress});
+                let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
+                if (parseInt(DAIbalanceFlashloanContract) > 0){
+                    let response = await withdrawTokenSigned(network, DAItokenAddress);
+                    if (response){
+                        let DAIwithdrawn = parseInt(response.events.LogWithdraw.returnValues.amount);
+                        console.log("#### CONGRATS!!! "+parseFloat(DAIwithdrawn / Math.pow(10, 18) ).toFixed(2)+" DAI withdrawn with success! ####")
+                        console.log("tx: "+response.transactionHash);                    
+                    }
+                } else {
+                    console.log("### NO BALANCE of DAI found for "+flashloanAddress);
                 }
-                network = parsedJson.network;
                 
-                let response = await executeFlashloan(network, parsedJson);
-                let serializedFile = await serializeResult(response, parsedJson, mode[1], network);
-                console.log(serializedFile.result);
-                //remove original input file
-                if(serializedFile){
-                    Files.deleteFile(mode[1]);
+            } catch (error) {
+                console.log("Error: "+error);
+            }
+        break;
+        
+        // print last block   
+        case '6': 
+            console.log(currentBlock);
+        break;
+        
+        // execute flash loan reading from a specific file
+        // ex: node .\Flashloaner.js 7 ethereum_fork_update ethereum_fork_update\FlashloanInput\2022-09-30_09-35_exec_09-36.json
+        case '7': 
+            try {
+                if(isContractOk(network, executorAddress)){
+                    
+                    let fileName = mode[2];
+                    let parsedJson = Files.parseJSONtoOjectList(fileName);
+                    if(parsedJson == undefined){
+                        throw("Error: file not found "+fileName);
+                    }
+                    network = parsedJson.network;
+                    
+                    let response = await executeFlashloanPromisse(network, parsedJson);
+                    let serializedFile = await serializeResult(response, parsedJson, fileName, network);
+                    console.log(serializedFile.result);
+                    //remove original input file
+                    if(serializedFile){
+                        Files.deleteFile(fileName);
+                    }
                 }
-                
             } catch (error) {
                 console.log("Error: "+error);
             }
         
         break;
         
-        case '8': //search for a new file on flashloan input folder and execute it
+        //search for a new file on flashloan input folder and execute it
+        //ex: node .\Flashloaner.js 8 ethereum_fork_update ethereum_fork_update\FlashloanInput
+        case '8': 
+            console.log("######### Mode 8 | VERIFY INPUT FOLDER AND EXECUTE FLASHLOAN #########");
             try {
+                if(mode.length < 3){
+                    throw("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 ethereum_fork_update ethereum_fork_update\\FlashloanInput");
+                }
+                //adjust to relative or absolute path
+                let directoryPath = mode[2];
+                if (directoryPath.search(":") == -1){
+                    directoryPath = path.join(__dirname, mode[2]);
+                } 
+
                 //search for files on the given folder name passed as parameter
-                const directoryPath = path.join(__dirname, mode[1]);
-                
                 let filePromise = new Promise ((resolve, reject)=>{
                     fs.readdir(directoryPath, async function (err, files) {
                         if (err) {
@@ -309,6 +431,8 @@ function withdrawToken (_network, _tokenAddress){
                         
                         let response = await executeFlashloanPromisse(network, parsedJson);
                         let serializedFile = await serializeResult(response, parsedJson, completeFileName, network);
+                        console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!serializedFile:")
+                        console.log(serializedFile);
                         console.log(serializedFile.result);
                         //remove original input file
                         if(serializedFile){
@@ -325,49 +449,24 @@ function withdrawToken (_network, _tokenAddress){
         break;
         
         
-
-        case '10': //show main address
+        //show main address
+        case '10': 
+            console.log("######### Mode 10 | SHOW MAIN ADDRESSES #########");
+            let ownerFlashloan = await getOwner(network, Flashloan);
+            console.log("executorAddress: "+executorAddress);
             console.log("flashloanAddress: "+flashloanAddress);
+            console.log("flashloan Owner Address: "+ownerFlashloan);
             console.log("DAItokenAddress: "+DAItokenAddress);
-            console.log("Host: "+truffleConfig.networks[network].host);   
+            console.log("Host: "+truffleConfig.networks[network].host);
+            console.log("Port: "+truffleConfig.networks[network].port);
+
 
         break;
-        case '11': //lending pool calls
-            let lendingPoolAbi = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"EthereumAddressUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"FeeProviderUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"LendingPoolConfiguratorUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"LendingPoolCoreUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"LendingPoolDataProviderUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"LendingPoolLiquidationManagerUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"LendingPoolManagerUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"LendingPoolParametersProviderUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"LendingPoolUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"LendingRateOracleUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"PriceOracleUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"bytes32","name":"id","type":"bytes32"},{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"ProxyCreated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAddress","type":"address"}],"name":"TokenDistributorUpdated","type":"event"},{"constant":true,"inputs":[{"internalType":"bytes32","name":"_key","type":"bytes32"}],"name":"getAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getFeeProvider","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getLendingPool","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getLendingPoolConfigurator","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getLendingPoolCore","outputs":[{"internalType":"address payable","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getLendingPoolDataProvider","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getLendingPoolLiquidationManager","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getLendingPoolManager","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getLendingPoolParametersProvider","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getLendingRateOracle","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getPriceOracle","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getTokenDistributor","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"isOwner","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"renounceOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_feeProvider","type":"address"}],"name":"setFeeProviderImpl","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_configurator","type":"address"}],"name":"setLendingPoolConfiguratorImpl","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_lendingPoolCore","type":"address"}],"name":"setLendingPoolCoreImpl","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_provider","type":"address"}],"name":"setLendingPoolDataProviderImpl","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_pool","type":"address"}],"name":"setLendingPoolImpl","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_manager","type":"address"}],"name":"setLendingPoolLiquidationManager","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_lendingPoolManager","type":"address"}],"name":"setLendingPoolManager","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_parametersProvider","type":"address"}],"name":"setLendingPoolParametersProviderImpl","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_lendingRateOracle","type":"address"}],"name":"setLendingRateOracle","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_priceOracle","type":"address"}],"name":"setPriceOracle","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_tokenDistributor","type":"address"}],"name":"setTokenDistributor","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}];
-            let lendingPoolContract = new Web3js.eth.Contract(lendingPoolAbi, truffleconfig.networks[network].lendingPoolAddressesProviderAddress, { from: config.DEV_ADDRESS })
-            let lendingPoolAddress = await lendingPoolContract.methods.getLendingPool().call();
-            console.log("lendingPoolAddress: "+lendingPoolAddress);
-
-            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: config.DEV_ADDRESS });
-            let DAIbalanceLendigPool = await DAIcontract.methods.balanceOf(lendingPoolAddress).call();
-            console.log("DAI Balance: "+parseFloat(Web3.utils.fromWei(DAIbalanceLendigPool)).toFixed(2));
-            
-        break;
-        case '14': //withdraw from flashloan contract to dev account
-            console.log("### withdraw from flashloan contract to dev account ###"); 
-            let flashloanContract3 = new Web3js.eth.Contract(Flashloan.abi, flashloanAddress, { from: config.DEV_ADDRESS })
-            let FlashloanRaw = {
-                from: config.DEV_ADDRESS,
-                chainId:network_id,
-                gasLimit: 12000000,
-                gasPrice: 0
-            };
-            let receiptWithdraw = await flashloanContract3.methods.withdraw(DAItokenAddress).send(FlashloanRaw);
-            console.log(receiptWithdraw);
-            exit();
-        break;
-        case '15': //print last block
-            let block2 = await Web3js.eth.getBlock("latest");
-            console.log(block2.number);
-        break;
-        case '16': 
-            console.log("hello arbitrageur!");
-        break;
+        
 
         default:
-            try{
-                
-                console.log("1"+process.env.TOKEN_ENV+"2")
+            try{                
+                console.log("Invalid parameter: "+mode)
             } catch (erro) {
                 console.log(erro);
             } 
