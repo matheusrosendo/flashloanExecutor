@@ -32,13 +32,14 @@ function getWeb3Instance(_network){
 }
 
 async function getCurrentBlock(_network){
-    let block;
+    let blockNumber;
     try {
         block = await getWeb3Instance(_network).eth.getBlock("latest");
+        blockNumber = block.number;
     } catch (error) {
         throw("Error trying to get block, verify connection with "+"http://"+truffleConfig.networks[_network].host+":"+truffleConfig.networks[_network].port);
     }
-    return block;
+    return blockNumber;
 }
 
 async function serializeResult(_response, _parsedJson, _inputFileName, _network){
@@ -61,9 +62,12 @@ async function serializeResult(_response, _parsedJson, _inputFileName, _network)
         let originalFileName = originalFileArr[originalFileArr.length-1];
         let newFileName = originalFileName.split(".")[0];
         newFileName = newFileName + "_exec_"+Util.formatTimeForFileName(new Date())+".json";
-        let fileNameEntirePath = path.join(_network, process.env.FLASHLOAN_LOGS, newFileName);
+        let fileNameEntirePath = path.join(__dirname, process.env.NETWORKS_FOLDER, _network, process.env.FLASHLOAN_OUTPUT_FOLDER, newFileName);
         await Files.serializeObjectListToJson(fileNameEntirePath, _parsedJson);
-        serializedFile = Files.parseJSONtoOjectList(fileNameEntirePath);
+        let testSerializedFile = Files.parseJSONtoOjectList(fileNameEntirePath);
+        if(testSerializedFile !== undefined && testSerializedFile !== null){
+            serializedFile = testSerializedFile;
+        }
     } catch (error) {
         console.log("Error serializing file "+_inputFileName);  
     }
@@ -73,17 +77,23 @@ async function serializeResult(_response, _parsedJson, _inputFileName, _network)
 
 function executeFlashloanPromisse (network, parsedJson){
     console.log("### Executing flashloan on "+network+" of $"+parsedJson.initialAmountInUSD+" to path "+parsedJson.path+" ###"); 
-    let Web3js = getWeb3Instance(network);
+    try {
     
-    let amountToBorrowOfFirstToken = Web3.utils.toWei(parseFloat(parsedJson.initialTokenAmount).toString());
-    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
-    let FlashloanRawTx = {
-        from: truffleConfig.networks[network].EXECUTOR_ADDRESS,
-        chainId:truffleConfig.networks[network].network_id,
-        gasLimit: 12000000,
-        gasPrice: 0
-    };
-    return flashloanContract.methods.flashloanUniswapV2(amountToBorrowOfFirstToken, parsedJson.addressPath).send(FlashloanRawTx);                     
+        let Web3js = getWeb3Instance(network);
+        
+        let amountToBorrowOfFirstToken = Web3.utils.toWei(parseFloat(parsedJson.initialTokenAmount).toString());
+        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
+        let FlashloanRawTx = {
+            from: truffleConfig.networks[network].EXECUTOR_ADDRESS,
+            chainId:truffleConfig.networks[network].network_id,
+            gasLimit: 12000000,
+            gasPrice: 0
+        };
+        return flashloanContract.methods.flashloanUniswapV2(amountToBorrowOfFirstToken, parsedJson.addressPath).send(FlashloanRawTx); 
+        
+    } catch (error) {
+        throw new Error(error)  
+    }                    
 }
 
 function withdrawToken (_network, _tokenAddress){
@@ -411,34 +421,31 @@ async function getOwner(_network, _contract){
                     directoryPath = path.join(__dirname, mode[2]);
                 } 
 
-                //search for files on the given folder name passed as parameter
-                let filePromise = new Promise ((resolve, reject)=>{
-                    fs.readdir(directoryPath, async function (err, files) {
-                        if (err) {
-                            reject('Error: unable to scan directory: ' + err);
-                        } 
-                       resolve(files);
-                    });
-                })
-                let resolvedFiles = await Promise.resolve(filePromise);
+                let resolvedFiles = Files.listFiles(directoryPath);
                 if(resolvedFiles.length == 0){
                     console.log("##### None new file found in "+directoryPath+" #####")
                 } else {
                     let promiseFileList = resolvedFiles.map(async (file) => {                  
-                        let completeFileName = path.join(directoryPath, file);
-                        let parsedJson = Files.parseJSONtoOjectList(completeFileName);
-                        network = parsedJson.network;
-                        
-                        let response = await executeFlashloanPromisse(network, parsedJson);
-                        let serializedFile = await serializeResult(response, parsedJson, completeFileName, network);
-                        console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!serializedFile:")
-                        console.log(serializedFile);
-                        console.log(serializedFile.result);
-                        //remove original input file
-                        if(serializedFile){
-                            Files.deleteFile(completeFileName);                        
+                        if(file !== undefined){
+                            
+                            let completeFileName = path.join(directoryPath, file);
+                            let parsedJson = Files.parseJSONtoOjectList(completeFileName);
+                            network = parsedJson.network;
+                            
+                            let response = await executeFlashloanPromisse(network, parsedJson);
+                            if(response === undefined || response === null){
+                                console.log("Error: undefined response returned from executeFlashloanPromisse function!")
+                            } else {
+                                let serializedFile = await serializeResult(response, parsedJson, completeFileName, network);
+                                console.log("##### Flashloan Executed! output file:"+completeFileName+" results: #####")
+                                console.log(serializedFile.result);
+                                //remove original input file
+                                if(serializedFile){
+                                    Files.deleteFile(completeFileName);                        
+                                }
+                                return serializedFile;
+                            }
                         }
-                        return serializedFile;
                     });
                     await Promise.all(promiseFileList);
                 }
