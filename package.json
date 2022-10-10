@@ -10,9 +10,7 @@
   "homepage": "https://docs.aave.com/developers/tutorials/performing-a-flash-loan/...-with-truffle",
   "repository": "https://github.com/aave/flashloan-box",
   "dependencies": {
-    "@uniswap/v2-periphery": "^1.1.0-beta.0"
-  },
-  "devDependencies": {
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "@openzeppelin/contracts": "^4.0.0",
     "@truffle/hdwallet-provider": "^1.0.36",
     "dotenv": "^8.2.0",

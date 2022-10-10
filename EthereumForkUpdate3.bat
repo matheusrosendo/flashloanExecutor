@@ -1,8 +1,8 @@
 @echo off
 title Fork Deploy flashloaner Arbitrageur Flashloaner script
-set netwokd=EthereumForkUpdate2
-set port=8004
-set mainFolder=flashloaner
+set netwokd=EthereumForkUpdate3
+set port=8005
+set mainFolder=flashloanerDev
 
 :: sets to 1 minute loop if none parater passed
 if "%~1"=="" (
