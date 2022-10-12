@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // This file is part of Truffle suite and helps keep track of your deployments
 
 pragma solidity ^0.8.0;

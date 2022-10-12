@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./AddressCoderLib.sol";
@@ -25,7 +26,7 @@ contract FlashloanAAVEv1 is FlashLoanReceiverBase {
         uint256 newBalance);
     
     //pass to parent constructor the AAVEv1lendingPoolAddressesProviderAddress 
-    constructor(SwapUniswapV2 _swapInstance) FlashLoanReceiverBase(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8) public {
+    constructor(SwapUniswapV2 _swapInstance) FlashLoanReceiverBase(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8) {
         swaps = _swapInstance;
     }
 

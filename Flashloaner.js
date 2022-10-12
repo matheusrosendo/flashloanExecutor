@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const Web3 = require('web3');
 const Flashloan = require("./build/contracts/FlashloanAAVEv1");
+const SwapCurveV1 = require("./build/contracts/SwapCurveV1");
 const truffleConfig = require("./truffle-config.js");
 const Files = require("./Files.js");
 const Util = require("./Util.js");
@@ -205,7 +206,9 @@ async function getOwner(_network, _contract){
     let network_id = truffleConfig.networks[network].network_id;
     let DAItokenAddress = truffleConfig.networks[network].DAIcontract;   
     let flashloanAddress = Flashloan.networks[network_id].address; 
-    let executorAddress = truffleConfig.networks[network].EXECUTOR_ADDRESS;  
+    let executorAddress = truffleConfig.networks[network].EXECUTOR_ADDRESS;
+    
+    let SwapCurveV1Address = SwapCurveV1.networks[network_id].address
 
     let truffleAddressAccount = "0xAC3bAE300eBA121510A444ab378EC7D065789F49";
 
@@ -223,6 +226,14 @@ async function getOwner(_network, _contract){
             await Web3js.eth.sendTransaction({
                 from: truffleConfig.networks[network].RICH_ADDRESS, 
                 to: truffleAddressAccount, 
+                value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
+            })
+
+            
+             //send ETH to swapcurve contract
+             await Web3js.eth.sendTransaction({
+                from: truffleConfig.networks[network].RICH_ADDRESS, 
+                to: SwapCurveV1Address, 
                 value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
             })
 
@@ -266,6 +277,23 @@ async function getOwner(_network, _contract){
                 }
                 console.log(receipt);
             });
+
+             //send DAI from rich account to swapCurve contract
+             var rawTransaction = {
+                from: truffleConfig.networks[network].RICH_ADDRESS,
+                to: DAItokenAddress,
+                value: 0,
+                data: DAIcontract.methods.transfer(SwapCurveV1Address, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
+                gas: 200000,
+                chainId: network_id
+            };            
+            await Web3js.eth.sendTransaction(rawTransaction, (error, receipt) => {
+                if (error) {
+                    console.log('DEBUG - error in _sendToken ', error)
+                }
+                console.log(receipt);
+            });
+            console.log("SwapCurveV1Address = "+SwapCurveV1Address);
             console.log("### ETH and DAI sent ###");
             exit()
             
@@ -312,6 +340,16 @@ async function getOwner(_network, _contract){
                 console.log("ETHbalanceFlashloanContract = " + Web3.utils.fromWei(ETHbalanceFlashloanContract));
                 let ETHbalanceTreuffleAccount = await Web3js.eth.getBalance(truffleAddressAccount);
                 console.log("truffleAddressAccount = " + Web3.utils.fromWei(ETHbalanceTreuffleAccount));
+
+                let ETHbalanceSwapCurve = await Web3js.eth.getBalance(SwapCurveV1Address);
+                console.log("ETHbalanceSwapCurve = " + Web3.utils.fromWei(ETHbalanceSwapCurve));
+
+                let DAIbalanceSwapCurveV1 = await DAIcontract.methods.balanceOf(SwapCurveV1Address).call();
+                console.log("DAIbalanceSwapCurveV1 = " + Web3.utils.fromWei(DAIbalanceSwapCurveV1));
+
+                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
+                let USDCbalanceSwapCurveV1 = await swapCurveContract.methods.balanceOfToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48").call();
+                console.log("USDCbalanceSwapCurveV1 = " + USDCbalanceSwapCurveV1 / Math.pow(10, 6));
                 exit();
             }
 
@@ -455,7 +493,28 @@ async function getOwner(_network, _contract){
         
         break;
         
+        case '9': 
+            console.log("######### Mode 9 | TEST CURVE SWAP #########");
+            try {
+                let Web3js = getWeb3Instance(network);
         
+                let amountToExchange = Web3.utils.toWei("500");
+                let minAmountOut = Web3.utils.toWei("400");
+                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
+                let SwapCurveRawTx = {
+                    from: truffleConfig.networks[network].EXECUTOR_ADDRESS,
+                    chainId:truffleConfig.networks[network].network_id,
+                    gasLimit: 12000000,
+                    gasPrice: 0
+                };
+                let newBalanceOfUSDC = await swapCurveContract.methods.exchangeDAIByUSDC(0, 1, amountToExchange, minAmountOut).send(SwapCurveRawTx); 
+                console.log(newBalanceOfUSDC);
+
+            } catch (error) {
+                throw("Error: "+error);
+            }
+        break;
+
         //show main address
         case '10': 
             console.log("######### Mode 10 | SHOW MAIN ADDRESSES #########");
@@ -466,6 +525,13 @@ async function getOwner(_network, _contract){
             console.log("DAItokenAddress: "+DAItokenAddress);
             console.log("Host: "+truffleConfig.networks[network].host);
             console.log("Port: "+truffleConfig.networks[network].port);
+
+
+        break;
+        //show main address
+        case '11': 
+            let chainId = await Web3js.eth.getChainId()
+            console.log("chainId = "+chainId);
 
 
         break;

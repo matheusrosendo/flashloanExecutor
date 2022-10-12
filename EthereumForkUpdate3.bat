@@ -18,16 +18,24 @@ echo %netwokd%: Fork networ, Deploy flashloaner SC, call arbitrageur, execute fl
 ::kills process runing on port %port%
 FOR /F "tokens=5 delims= " %%P IN ('netstat -a -n -o ^| findstr :%port%') DO if %%P GTR 0 TaskKill.exe /F /PID %%P
 
-:: delete last blockchain database fork
-@RD /S /Q "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\database"
+
+:: try to find a database folder and delete it in this case
+set databaseFound=false
+for /d /r "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\" %%a in (*) do if /i "%%~nxa"=="database" set "databaseFound=true"
+if %databaseFound% == true (
+    @RD /S /Q "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\database"
+) else (
+    echo "database NOT found"
+)
+cd E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\
 
 ::creates fork
-start /B ganache-cli --fork https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
+start /B ganache-cli --networkId 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
 timeout 10
 
 :: execute arbitrageur bot
 cd ..\botArbitrage 
-node .\Arbitrageur.js 1 2 4 0 %netwokd%
+node .\Arbitrageur.js 1 2 3 4 0 %netwokd%
 
 :: verify if any new file exists in input folder
 echo "verifing new files on E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\FlashloanInput ..."
