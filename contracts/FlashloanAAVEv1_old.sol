@@ -9,6 +9,8 @@ import "./SwapUniswapV2.sol";
 
 
 contract FlashloanAAVEv1 is FlashLoanReceiverBase {
+    mapping(address => int128) routerSwapModes;
+
     SwapUniswapV2 swaps;
     using SafeERC20 for IERC20;
     event SwapLogger(uint AmountInitialIn, address router, address from, address to);
@@ -28,6 +30,18 @@ contract FlashloanAAVEv1 is FlashLoanReceiverBase {
     //pass to parent constructor the AAVEv1lendingPoolAddressesProviderAddress 
     constructor(SwapUniswapV2 _swapInstance) FlashLoanReceiverBase(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8) {
         swaps = _swapInstance;
+
+        // swap modes
+        // CurveV1 = 1
+        // UniswapV2 = 2
+        // UniswapV3 = 3
+
+        //curve pool = 1
+        routerSwapModes[0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F] = 1;
+        //uniswap router = 2
+        routerSwapModes[0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D] = 2;
+        //sushi router = 2
+        routerSwapModes[0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F] = 2;
     }
 
     /**

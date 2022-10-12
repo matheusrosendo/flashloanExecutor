@@ -119,6 +119,20 @@ class Util {
         console.log("####"+_DEX+" "+_token1+ " "+_token2+ " has $"+parseFloat(_contractTVL).toFixed(2)+ " | blacklisted ####");
         return _blacklist;
     }
+
+    static amountToBlockchain(_amount, _decimals, _web3){
+        const balance = _amount.toString();
+        const unit = Object.keys(_web3.utils.unitMap).find(key => _web3.utils.unitMap[key] === _web3.utils.toBN(10).pow(_web3.utils.toBN(_decimals)).toString());
+        let result = _web3.utils.toWei(balance, unit);
+        return result;
+    }
+
+    static amountFromBlockchain(_amount, _decimals, _web3){
+        const balance = _amount.toString();
+        const unit = Object.keys(_web3.utils.unitMap).find(key => _web3.utils.unitMap[key] === _web3.utils.toBN(10).pow(_web3.utils.toBN(_decimals)).toString());
+        let result = _web3.utils.fromWei(balance, unit);
+        return result;
+    }
   
 }
 
