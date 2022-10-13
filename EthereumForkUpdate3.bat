@@ -18,7 +18,6 @@ echo %netwokd%: Fork networ, Deploy flashloaner SC, call arbitrageur, execute fl
 ::kills process runing on port %port%
 FOR /F "tokens=5 delims= " %%P IN ('netstat -a -n -o ^| findstr :%port%') DO if %%P GTR 0 TaskKill.exe /F /PID %%P
 
-
 :: try to find a database folder and delete it in this case
 set databaseFound=false
 for /d /r "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\" %%a in (*) do if /i "%%~nxa"=="database" set "databaseFound=true"
