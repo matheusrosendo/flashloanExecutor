@@ -7,7 +7,5 @@
 3. Arbitrageur: Arbitrageur/BlockchainConfig.js
 4. Flashloaner: Copy paste <file>.bat
 5. Flashloaner: Edit port and network name on <new file>.bat
-6. Flashloaner: Copy paste Networks folder 
-7. Flashloaner: Delete files on FlashloanInput and FlashloanOutput on Flashloaner/Networks/<new network>
-8. Flashloaner: Edit Flashloaner/truffle-config.js
-9. Flashloaner: execute .\<new file>.bat seconds
+6. Flashloaner: Edit Flashloaner/truffle-config.js
+7. Flashloaner: execute .\<new file>.bat seconds

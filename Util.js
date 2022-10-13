@@ -36,6 +36,22 @@ class Util {
         );
     }
 
+    static formatDateTimeWithSecondsForFilename(date) {
+        return (
+        [
+            date.getFullYear(),
+            Util.padTo2Digits(date.getMonth() + 1),
+            Util.padTo2Digits(date.getDate()),            
+        ].join('-') +
+        '_' +
+        [
+            Util.padTo2Digits(date.getHours()),
+            Util.padTo2Digits(date.getMinutes()),
+            Util.padTo2Digits(date.getSeconds()),
+        ].join('-')
+        );
+    }
+
     static formatDate(date) {
         return (
         [

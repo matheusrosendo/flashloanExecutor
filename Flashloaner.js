@@ -38,7 +38,7 @@ async function getCurrentBlock(_network){
         block = await getWeb3Instance(_network).eth.getBlock("latest");
         blockNumber = block.number;
     } catch (error) {
-        throw("Error trying to get block, verify connection with "+"http://"+truffleConfig.networks[_network].host+":"+truffleConfig.networks[_network].port);
+        throw new Error("trying to get block, verify connection with "+"http://"+truffleConfig.networks[_network].host+":"+truffleConfig.networks[_network].port);
     }
     return blockNumber;
 }
@@ -96,7 +96,7 @@ function executeFlashloanPromisse (network, parsedJson){
         return flashloanContract.methods.flashloanAAVEv1(amountToBorrowOfFirstToken, parsedJson.addressPath).send(FlashloanRawTx); 
         
     } catch (error) {
-        throw new Error(error)  
+        throw new Error(error)  ;
     }                    
 }
 
@@ -199,7 +199,7 @@ async function getOwner(_network, _contract){
     //set network and some variables used to transfer initial amounts to contract and dev account (local forks only)
     let network = mode[1];
     if(truffleConfig.networks[network] == undefined){
-        throw("Error: invalid network name = "+network);
+        throw new Error("invalid network name = "+network);
     }
     console.log("### network: "+network+" ###"); 
     let Web3js = getWeb3Instance(network);   
@@ -430,7 +430,7 @@ async function getOwner(_network, _contract){
                     let fileName = mode[2];
                     let parsedJson = Files.parseJSONtoOjectList(fileName);
                     if(parsedJson == undefined){
-                        throw("Error: file not found "+fileName);
+                        throw new Error("file not found "+fileName);
                     }
                     network = parsedJson.network;
                     
@@ -454,7 +454,7 @@ async function getOwner(_network, _contract){
             console.log("######### Mode 8 | VERIFY INPUT FOLDER AND EXECUTE FLASHLOAN #########");
             try {
                 if(mode.length < 3){
-                    throw("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
+                    throw new Error("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
                 }
 
                 //adjust to relative or absolute path
@@ -471,35 +471,38 @@ async function getOwner(_network, _contract){
                     //execute flashloan for each file
                     let promiseFileList = resolvedFiles.map(async (file) => {                  
                         if(file !== undefined){
-                            
-                            //parse flashloan file
-                            let completeFileName = path.join(directoryPath, file);
-                            let parsedJson = Files.parseJSONtoOjectList(completeFileName);
-                            
-                            //execute flashloan
-                            let response = await executeFlashloanPromisse(network, parsedJson);
-                            
-                            //parse response data
-                            if(response === undefined || response === null){
-                                console.log("Error: undefined response returned from executeFlashloanPromisse function!")
-                            } else {
-                                //serialize log file with the execution data
-                                let serializedFile = await serializeResult(response, parsedJson, completeFileName, network);
-                                console.log("##### Flashloan Executed! output file:"+serializedFile.path+" results: #####")
-                                console.log(serializedFile.content.result);
+                            try {
+                                //parse flashloan file
+                                let completeFileName = path.join(directoryPath, file);
+                                let parsedJson = Files.parseJSONtoOjectList(completeFileName);
                                 
-                                //remove original input file
-                                if(serializedFile){
-                                    Files.deleteFile(completeFileName);                        
+                                //execute flashloan
+                                let response = await executeFlashloanPromisse(network, parsedJson);
+                                
+                                //parse response data
+                                if(response === undefined || response === null){
+                                    console.log("Error: undefined response returned from executeFlashloanPromisse function!")
+                                } else {
+                                    //serialize log file with the execution data
+                                    let serializedFile = await serializeResult(response, parsedJson, completeFileName, network);
+                                    console.log("##### Flashloan Executed! output file:"+serializedFile.path+" results: #####")
+                                    console.log(serializedFile.content.result);
+                                    
+                                    //remove original input file
+                                    if(serializedFile){
+                                        Files.deleteFile(completeFileName);                        
+                                    }
+                                    return serializedFile;
                                 }
-                                return serializedFile;
+                            } catch (error) {
+                                throw new Error(error);
                             }
                         }
                     });
                     await Promise.all(promiseFileList);
                 }
             } catch (error) {
-                throw("Error: "+error);
+                throw new Error(error);
             }
         
         break;
@@ -528,7 +531,7 @@ async function getOwner(_network, _contract){
                 let newBalance = await swapCurveContract.methods.balanceOfToken(tokenOutAddress).call();
                 console.log(newBalance / Math.pow(10, 6));
             } catch (error) {
-                throw("Error: "+error);
+                throw new Error(error);
             }
         break;
         case '9.2': 
@@ -546,7 +549,7 @@ async function getOwner(_network, _contract){
                 console.log("###### Estimated amount out ("+tokenOutAddress+"): ######");
                 console.log(amountOut / Math.pow(10, 6));
             } catch (error) {
-                throw("Error: "+error);
+                throw new Error(error);
             }
         break;
 
