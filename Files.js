@@ -2,12 +2,9 @@
 /**
  * Files
  */
-
- const fs = require("fs")
- const ObjectsToCsv = require('objects-to-csv');
+ const fs = require("fs");
  const csvParser =  require("csv-parser");
  const assert = require('assert');
- const Util = require("./Util");
  
  class Files {
      /**
@@ -148,18 +145,7 @@
          return {"matrix":parseJSONtoOjectList(_pairReservesfile), "tokenList": parseJSONtoOjectList(_tokenListFile)};
      }
  
-     /**
-      * serialize matrixPrice to csv file
-      */
-     static async serializeMatrixPriceToCSV(_matrix, _fileName){
-         assert(_matrix, "Error: _matrix is not fulfilled!");
-         assert(_fileName, "Error: _fileName is not fulfilled!");
- 
-         console.log("###### Writing matrix to CSV file:"+_fileName+" ######")
-         const csv = new ObjectsToCsv(_matrix);
-         await csv.toDisk(_fileName);
-     }
- 
+     
      
      /**
       * Write a json file for the givem object list
