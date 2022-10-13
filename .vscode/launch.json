@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "program": "${file}",
-            "args": ["12", "EthereumForkUpdate3"]
+            "args": ["8", "EthereumForkUpdate3", "Networks\\EthereumForkUpdate3\\FlashloanInput"]
              
             //"args": ["7", "E:/Dev/Estudos/BlockchainDev/FlashLoans/flashloaner/ethereum_fork_update/FlashloanInput/teste.json"]
         }

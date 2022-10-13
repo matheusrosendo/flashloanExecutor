@@ -447,59 +447,11 @@ async function getOwner(_network, _contract){
             }
         
         break;
-        
+       
         //search for a new file on flashloan input folder and execute it
         //ex: node .\Flashloaner.js 8 ethereum_fork_update ethereum_fork_update\FlashloanInput
         case '8': 
             console.log("######### Mode 8 | VERIFY INPUT FOLDER AND EXECUTE FLASHLOAN #########");
-            try {
-                if(mode.length < 3){
-                    throw("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 ethereum_fork_update ethereum_fork_update\\FlashloanInput");
-                }
-                //adjust to relative or absolute path
-                let directoryPath = mode[2];
-                if (directoryPath.search(":") == -1){
-                    directoryPath = path.join(__dirname, mode[2]);
-                } 
-
-                let resolvedFiles = Files.listFiles(directoryPath);
-                if(resolvedFiles.length == 0){
-                    console.log("##### None new file found in "+directoryPath+" #####")
-                } else {
-                    let promiseFileList = resolvedFiles.map(async (file) => {                  
-                        if(file !== undefined){
-                            
-                            let completeFileName = path.join(directoryPath, file);
-                            let parsedJson = Files.parseJSONtoOjectList(completeFileName);
-                            network = parsedJson.network;
-                            
-                            let response = await executeFlashloanPromisse(network, parsedJson);
-                            if(response === undefined || response === null){
-                                console.log("Error: undefined response returned from executeFlashloanPromisse function!")
-                            } else {
-                                let serializedFile = await serializeResult(response, parsedJson, completeFileName, network);
-                                console.log("##### Flashloan Executed! output file:"+completeFileName+" results: #####")
-                                console.log(serializedFile.result);
-                                //remove original input file
-                                if(serializedFile){
-                                    Files.deleteFile(completeFileName);                        
-                                }
-                                return serializedFile;
-                            }
-                        }
-                    });
-                    await Promise.all(promiseFileList);
-                }
-            } catch (error) {
-                throw("Error: "+error);
-            }
-        
-        break;
-
-        //search for a new file on flashloan input folder and execute it
-        //ex: node .\Flashloaner.js 8 ethereum_fork_update ethereum_fork_update\FlashloanInput
-        case '8.1': 
-            console.log("######### Mode 8.1 | VERIFY INPUT FOLDER AND EXECUTE FLASHLOAN #########");
             try {
                 if(mode.length < 3){
                     throw("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
