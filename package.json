@@ -19,7 +19,9 @@
     "truffle": "^5.1.32",
     "chai": "^4.3.6",
     "chai-as-promised": "^7.1.1",
-    "chai-bn": "^0.3.1"
+    "chai-bn": "^0.3.1",
+    "csv-parser": "^3.0.0",
+    "csv": "^6.2.0"    
   },
   "scripts": {
     "ethereum_fork_past": "ganache-cli  --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10  -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",

@@ -2,10 +2,8 @@
 
 ## How to create a new network
 
-1. Arbitrageur: Copy paste Networks folder
-2. Arbitrageur: Delete output folder on Arbitrageur/Networks/<new network> 
-3. Arbitrageur: Arbitrageur/BlockchainConfig.js
-4. Flashloaner: Copy paste <file>.bat
-5. Flashloaner: Edit port and network name on <new file>.bat
-6. Flashloaner: Edit Flashloaner/truffle-config.js
-7. Flashloaner: execute .\<new file>.bat seconds
+1. Arbitrageur: Edit Arbitrageur/BlockchainConfig.js
+2. Flashloaner: Copy paste <file>.bat
+3. Flashloaner: Edit port and network name on <new file>.bat
+4. Flashloaner: Edit Flashloaner/truffle-config.js
+5. Flashloaner: execute .\<new file>.bat seconds
