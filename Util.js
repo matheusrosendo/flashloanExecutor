@@ -1,3 +1,4 @@
+const bigdecimal = require("bigdecimal");
 class Util {
     
 
@@ -136,18 +137,48 @@ class Util {
         return _blacklist;
     }
 
-    static amountToBlockchain(_amount, _decimals, _web3){
-        const balance = _amount.toString();
-        const unit = Object.keys(_web3.utils.unitMap).find(key => _web3.utils.unitMap[key] === _web3.utils.toBN(10).pow(_web3.utils.toBN(_decimals)).toString());
-        let result = _web3.utils.toWei(balance, unit);
-        return result;
+    /**
+     * @param {*} _amount 
+     * @param {*} _decimals 
+     * @returns String representing the interger amount to be used on blockchain transactions
+     */
+    static amountToBlockchain(_amount, _decimals){
+        try {            
+        
+            let amountInBig = new bigdecimal.BigDecimal(_amount);
+            let decimalsInt = new bigdecimal.BigDecimal(Math.pow(10, parseInt(_decimals)));
+            let bigResult, strResult;
+            if(amountInBig > 0 && decimalsInt > 0){
+                bigResult = amountInBig.multiply(decimalsInt);
+                strResult = bigResult.toString().split(".")[0]; 
+            }
+            
+            return strResult;
+        } catch (error) {
+            throw new Error (error); 
+        }
     }
 
-    static amountFromBlockchain(_amount, _decimals, _web3){
-        const balance = _amount.toString();
-        const unit = Object.keys(_web3.utils.unitMap).find(key => _web3.utils.unitMap[key] === _web3.utils.toBN(10).pow(_web3.utils.toBN(_decimals)).toString());
-        let result = _web3.utils.fromWei(balance, unit);
-        return result;
+    /**
+     * 
+     * @param {*} _amount 
+     * @param {*} _decimals 
+     * @returns Number to be used outside blockchain
+     */
+    static amountFromBlockchain(_amount, _decimals){
+        
+        try {
+            let amountInBig = new bigdecimal.BigDecimal(_amount);
+            let decimalsInt = new bigdecimal.BigDecimal(Math.pow(10, parseInt(_decimals)));
+            let newResult;
+            if(amountInBig > 0 && decimalsInt > 0){
+                newResult = Number(amountInBig.divide(decimalsInt)); 
+            }
+
+            return newResult;
+        } catch (error) {
+            throw new Error (error); 
+        }
     }
   
 }

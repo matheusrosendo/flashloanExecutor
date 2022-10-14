@@ -2,12 +2,12 @@
 title Fork Deploy flashloaner Arbitrageur Flashloaner script
 set netwokd=EthereumForkSpecBlock
 set port=8101
-set mainFolder=flashloanerDev
+set mainFolder=flashloaner
 set executeArbi=true
 set executeFlash=true
 
 ::set initial block
-SET /A block = 15739206 
+SET /A block = 15748619 
 
 echo %netwokd%: Fork network at block %block%, Deploy flashloaner SC, call arbitrageur, execute flashloaner script
 
@@ -24,7 +24,10 @@ if exist "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd
 
 ::creates fork
 start /B ganache-cli --fork https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy@%block% --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
-timeout 5
+timeout 10
+
+:: saves log on database folder
+node .\Flashloaner.js 6 %netwokd% 
 
 if %executeArbi%==true (
      :: execute arbitrageur bot

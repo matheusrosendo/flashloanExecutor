@@ -1,18 +1,18 @@
 @echo off
 title Fork Deploy flashloaner Arbitrageur Flashloaner script
-set netwokd=EthereumForkUpdate4
-set port=8004
-set mainFolder=flashloanerDev
-set executeArbi=false
-set executeFlash=false
+set netwokd=EthereumForkUpdate%1
+set port=800%1
+set mainFolder=flashloaner
+set executeArbi=true
+set executeFlash=true
 
-:: sets to 1 minute loop if none parater passed
-if "%~1"=="" (
-    SET /A loop = 60
+:: sets to no loop if none second parameter passed
+if "%~2"=="" (
+    SET /A loop = 0
     echo one time execution script
 ) else (
-    SET /A loop = %1
-    echo repeat script every %1 seconds
+    SET /A loop = %2
+    echo repeat script every %2 seconds
 )
 :start
 echo %netwokd%: Fork networ, Deploy flashloaner SC, call arbitrageur, execute flashloaner script
@@ -33,6 +33,8 @@ if exist "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd
 start /B ganache-cli --networkId 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
 timeout 10
 
+:: saves log on database folder
+node .\Flashloaner.js 6 %netwokd% 
 if %executeArbi%==true (
     :: execute arbitrageur bot
     cd ..\botArbitrage 
@@ -47,11 +49,13 @@ for /f %%A in ('dir /a-d-s-h /b ^| find /v /c ""') do set cnt=%%A
 :: get back to main folder
 cd E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\
 
-set executeFlash=true (
-    if %cnt% GTR 0 (    
 
-        ::execute deploy
-        start /B truffle migrate --reset --network %netwokd% 
+if %cnt% GTR 0 (    
+
+    ::execute deploy
+    start /B truffle migrate --reset --network %netwokd% 
+    
+    if %executeFlash%==true (
         timeout 30
             
         cd E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%
@@ -67,8 +71,10 @@ set executeFlash=true (
         node .\Flashloaner.js 3 %netwokd%
         :: put check account balance
         node .\Flashloaner.js 4 %netwokd%
+
     )
 )
+
 timeout %loop%
 if %loop% GTR 0 goto start
 exit

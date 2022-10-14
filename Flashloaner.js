@@ -25,9 +25,10 @@ function getWeb3Instance(_network){
     try {       
         if(web3Instance === undefined){
             web3Instance = new Web3("http://"+truffleConfig.networks[_network].host+":"+truffleConfig.networks[_network].port);
+            web3Instance.eth.handleRevert = true;
         }
     } catch (error) {
-        console.log("Error to connect to "+_network+" "+error);  
+        throw new Error("Error to connect to "+_network+" error: "+error);
     }
     return  web3Instance; 
 }
@@ -54,7 +55,7 @@ async function serializeResult(_response, _parsedJson, _inputFileName, _network)
             tokenBorrowed: _parsedJson.addressPath[1],
             oldBalance: _response.events.LoggerBalance.returnValues.oldBalance,
             newBalance: _response.events.LoggerBalance.returnValues.newBalance,
-            profit: Util.amountFromBlockchain(parseInt(_response.events.LoggerBalance.returnValues.newBalance) - parseInt(_response.events.LoggerBalance.returnValues.oldBalance), _parsedJson.initialTokenDecimals, Web3)
+            profit: Util.amountFromBlockchain(parseInt(_response.events.LoggerBalance.returnValues.newBalance) - parseInt(_response.events.LoggerBalance.returnValues.oldBalance), _parsedJson.initialTokenDecimals)
         }
         _parsedJson.result = result;
         
@@ -79,13 +80,13 @@ async function serializeResult(_response, _parsedJson, _inputFileName, _network)
 
 
 
-function executeFlashloanPromisse (network, parsedJson){
+async function executeFlashloanPromisse (network, parsedJson){
     console.log("### Executing flashloan on "+network+" of $"+parsedJson.initialAmountInUSD+" to path "+parsedJson.path+" ###"); 
     try {
     
         let Web3js = getWeb3Instance(network);
         
-        let amountToBorrowOfFirstToken = Util.amountToBlockchain(parsedJson.initialTokenAmount, parsedJson.initialTokenDecimals, Web3);
+        let amountToBorrowOfFirstToken = Util.amountToBlockchain(parsedJson.initialTokenAmount, parsedJson.initialTokenDecimals);
         let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
         let FlashloanRawTx = {
             from: truffleConfig.networks[network].EXECUTOR_ADDRESS,
@@ -93,63 +94,72 @@ function executeFlashloanPromisse (network, parsedJson){
             gasLimit: 12000000,
             gasPrice: 0
         };
-        return flashloanContract.methods.flashloanAAVEv1(amountToBorrowOfFirstToken, parsedJson.addressPath).send(FlashloanRawTx); 
+        let result = await flashloanContract.methods.flashloanAAVEv1(amountToBorrowOfFirstToken, parsedJson.addressPath).send(FlashloanRawTx); 
+        return result;
         
     } catch (error) {
-        throw new Error(error)  ;
+        throw new Error(error.reason)  ;
     }                    
 }
 
 function withdrawToken (_network, _tokenAddress){
     console.log("### Withdrawing profits in DAI ###"); 
-    let Web3js = getWeb3Instance(_network);
-    
-    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].EXECUTOR_ADDRESS })
-    let FlashloanRawTx = {
-        from: truffleConfig.networks[_network].EXECUTOR_ADDRESS,
-        chainId:truffleConfig.networks[_network].network_id,
-        gasLimit: 12000000,
-        gasPrice: 0
-    };
-    return flashloanContract.methods.withdraw(_tokenAddress).send(FlashloanRawTx);                     
+    try {
+        let Web3js = getWeb3Instance(_network);
+        
+        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].EXECUTOR_ADDRESS })
+        let FlashloanRawTx = {
+            from: truffleConfig.networks[_network].EXECUTOR_ADDRESS,
+            chainId:truffleConfig.networks[_network].network_id,
+            gasLimit: 12000000,
+            gasPrice: 0
+        };
+        return flashloanContract.methods.withdraw(_tokenAddress).send(FlashloanRawTx);                     
+    } catch (error) {
+        throw new Error(error.reason);
+    }  
 }
 
 function withdrawTokenSigned (_network, _tokenAddress){
     console.log("### Withdrawing profits in DAI ###"); 
-    let Web3js = getWeb3Instance(_network);
-    
-    let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].EXECUTOR_ADDRESS })
+    try {
+        let Web3js = getWeb3Instance(_network);
         
-    
-    let FlashloanRawTx = {
-        from: truffleConfig.networks[_network].EXECUTOR_ADDRESS,
-        chainId:truffleConfig.networks[_network].network_id,
-        gasLimit: 12000000,
-        gasPrice: 0
-    };
+        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].EXECUTOR_ADDRESS })
+            
+        
+        let FlashloanRawTx = {
+            from: truffleConfig.networks[_network].EXECUTOR_ADDRESS,
+            chainId:truffleConfig.networks[_network].network_id,
+            gasLimit: 12000000,
+            gasPrice: 0
+        };
 
-    //sign tx
-    let signedTxPromise = Web3js.eth.signTransaction(FlashloanRawTx, truffleConfig.networks[_network].DEV_PK);
-                
-    //handle response tx
-    signedTxPromise.then((signedTx)=>{
-        let sentTx = flashloanContract.methods.withdraw(_tokenAddress).sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
-        
-        sentTx.on("receipt", (receipt) => {
-            console.log("### tx sent successfully: ###");
-            console.log(receipt);
-        });
-        sentTx.on("error", (err) => {
-            console.log("### send tx error: ###");
+        //sign tx
+        let signedTxPromise = Web3js.eth.signTransaction(FlashloanRawTx, truffleConfig.networks[_network].DEV_PK);
+                    
+        //handle response tx
+        signedTxPromise.then((signedTx)=>{
+            let sentTx = flashloanContract.methods.withdraw(_tokenAddress).sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
+            
+            sentTx.on("receipt", (receipt) => {
+                console.log("### tx sent successfully: ###");
+                console.log(receipt);
+            });
+            sentTx.on("error", (err) => {
+                console.log("### send tx error: ###");
+                console.log(err);
+                //exit();
+            });
+        }).catch((err) =>{
+            console.log("### sign tx error: ###");
             console.log(err);
             //exit();
-        });
-    }).catch((err) =>{
-        console.log("### sign tx error: ###");
-        console.log(err);
-        //exit();
-    })
-    return signedTxPromise;                     
+        })
+        return signedTxPromise;         
+    } catch (error) {
+        throw new Error(error.reason) ;
+    }              
 }
 
 /**
@@ -170,7 +180,7 @@ async function isContractOk(_network, _OwnerAddress){
             return false;
         }        
     } catch (error) {
-        return false;
+        throw new Error("Are you sure Flashloan Contract is deployed? Error: "+error);
     }
 }
 
@@ -181,7 +191,7 @@ async function getOwner(_network, _contract){
         let owner = await flashloanContract.methods.owner().call(); 
         return owner;
     } catch (error) {
-        console.log("Error: "+error);
+        throw new Error (error);
     }
 }
 
@@ -392,10 +402,10 @@ async function getOwner(_network, _contract){
                 }
                 
             } catch (error) {
-                console.log("Error: "+error);
+                throw new Error(error);
             }
         break;
-        case '5.1': 
+        case '5.1': //withdraw signed
             try {
                 //verify current DAI amount
                 DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: executorAddress});
@@ -412,13 +422,28 @@ async function getOwner(_network, _contract){
                 }
                 
             } catch (error) {
-                console.log("Error: "+error);
+                throw new Error(error);
             }
         break;
         
         // print last block   
         case '6': 
-            console.log(currentBlock);
+            try {
+                console.log("######### Mode 6 | LOG BLOCK INFO #########");
+                let logPath = path.join(__dirname, process.env.NETWORKS_FOLDER, network, "database", Util.formatDateTimeForFilename(new Date())+".log");
+                let logContent = {};
+                logContent.network = network;
+                logContent.datetime = Util.formatDateTime(new Date());
+                //the block just forked is one behind
+                logContent.block = currentBlock-1;
+                logContent.host = truffleConfig.networks[network].host;
+                logContent.port = truffleConfig.networks[network].port;
+                if(!Files.fileExists(logPath)){
+                    await Files.serializeObjectListToLogFile(logPath, logContent);
+                }   
+            } catch (error) {
+                throw new Error(error);
+            }         
         break;
         
         // execute flash loan reading from a specific file
@@ -443,7 +468,7 @@ async function getOwner(_network, _contract){
                     }
                 }
             } catch (error) {
-                console.log("Error: "+error);
+                throw new Error(error);
             }
         
         break;
@@ -452,6 +477,7 @@ async function getOwner(_network, _contract){
         //ex: node .\Flashloaner.js 8 ethereum_fork_update ethereum_fork_update\FlashloanInput
         case '8': 
             console.log("######### Mode 8 | VERIFY INPUT FOLDER AND EXECUTE FLASHLOAN #########");
+            
             try {
                 if(mode.length < 3){
                     throw new Error("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
@@ -574,13 +600,13 @@ async function getOwner(_network, _contract){
 
         break;
 
+        //testes com amountTo and AmountFrom
         case '12':
-            const balance = 1000;
-            const decimals = 9;
-            let initialAmount = Util.amountToBlockchain(balance, decimals, Web3);
-            console.log( "initialAmount to blockchain = " + initialAmount);
-
-            console.log( "initialAmount from blockchain = " + Util.amountFromBlockchain(initialAmount, decimals, Web3));
+            let testeResultTo = Util.amountToBlockchain(5, 8);
+            let testeResultFrom = Util.amountFromBlockchain(testeResultTo, 8);
+            console.log(testeResultTo);
+            console.log(testeResultFrom);
+            
         break;
         
 
