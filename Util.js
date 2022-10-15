@@ -180,6 +180,25 @@ class Util {
             throw new Error (error); 
         }
     }
+
+    /**
+     * Creates a copied object
+     * @param {*} _object 
+     * @returns 
+     */
+    static copyObject(_object){
+        try {  
+            let newObject = {}
+            let fields = Object.keys(_object);
+            let values = Object.values(_object);
+            for(let i = 0; i < fields.length; i++){
+                newObject[fields[i]] = values[i];
+            }
+            return newObject;
+        } catch (error) {
+            throw new Error (error); 
+        }
+    }
   
 }
 

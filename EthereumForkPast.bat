@@ -2,7 +2,7 @@
 title Fork Deploy flashloaner Arbitrageur Flashloaner script
 set netwokd=EthereumForkPast
 set port=8100
-set mainFolder=flashloanerDev
+set mainFolder=flashloaner
 
 
 ::set initial block
