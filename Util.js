@@ -174,7 +174,7 @@ class Util {
             if(amountInBig > 0 && decimalsInt > 0){
                 newResult = Number(amountInBig.divide(decimalsInt)); 
             }
-
+            
             return newResult;
         } catch (error) {
             throw new Error (error); 

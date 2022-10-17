@@ -48,6 +48,9 @@ async function serializeResult(_response, _parsedJson, _inputFileName, _network)
     let serializedFile;
 
     try {
+        let newBalanceNumber = Util.amountFromBlockchain(_response.events.LoggerBalance.returnValues.newBalance, 18);
+        let oldBalanceNumber = Util.amountFromBlockchain(_response.events.LoggerBalance.returnValues.oldBalance, 18);
+        let profit = newBalanceNumber - oldBalanceNumber; 
         //get result data
         let result = {
             tx: _response.transactionHash,
@@ -55,7 +58,7 @@ async function serializeResult(_response, _parsedJson, _inputFileName, _network)
             tokenBorrowed: _parsedJson.addressPath[1],
             oldBalance: _response.events.LoggerBalance.returnValues.oldBalance,
             newBalance: _response.events.LoggerBalance.returnValues.newBalance,
-            profit: Util.amountFromBlockchain(parseInt(_response.events.LoggerBalance.returnValues.newBalance) - parseInt(_response.events.LoggerBalance.returnValues.oldBalance), _parsedJson.initialTokenDecimals)
+            profit: profit
         }
         _parsedJson.result = result;
         
