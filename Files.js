@@ -172,6 +172,30 @@
          
          return resolvedPromiseReserves;
      }
+
+    /**
+     * Write a json file for the givem object list
+     * @param {String} _fileName 
+     * @param {Object[]} _tokenList 
+     * @returns 
+     */
+    static serializeObjectListToJsonPromise(_fileName, _objectList){
+        assert(_fileName, "Error: _fileName is not fulfilled!");
+        assert(_objectList, "Error: _objectList is not fulfilled!");
+    
+        console.log("###### Writing object list to JSON file:"+_fileName+" ######")
+        
+        let writingFilePromise = new Promise((resolve, reject) =>{
+            fs.writeFile(_fileName, JSON.stringify(_objectList, null, 2), 'utf8', (err)=>{
+                if(err){
+                    reject("Error saving file "+_fileName+": "+err)
+                } else {
+                    resolve();
+                }
+            });
+        });
+        return writingFilePromise;
+    }
  
      /**
       * Write a json file for the givem object list

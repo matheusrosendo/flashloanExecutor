@@ -113,14 +113,51 @@ class Util {
      */
      static isBlacklisted(_blacklist, _exchange, _token1, _token2){
         let found = false
-        _blacklist.every((item) => {
+        for (let item of _blacklist) {
             if((item.DEX === _exchange && item.token1 === _token1 && item.token2 === _token2) || (item.DEX === _exchange && item.token1 === _token2 && item.token2 === _token1) ){
                 found = true;
-                return false; //return of 'every' (if false it breaks the loop)
+                break;
             }
-            return true; //return of 'every' (if true it continues the loop)
-        })
+        }
         return found;
+    }
+
+    /**
+     * Searches for a item in the blacklist  
+     * @param {*} _exchangeList 
+     * @param {*} _symbol 
+     * @param {*} _DEX 
+     * @returns 
+     */
+     static isWhitelisted(_whitelist, _exchange, _token1, _token2){
+        let found = false
+        for (let item of _whitelist) {
+            if((item.DEX === _exchange && item.token1 === _token1 && item.token2 === _token2) || (item.DEX === _exchange && item.token1 === _token2 && item.token2 === _token1) ){
+                found = true;
+                break;
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Searches for a address in the whitelist and return it if found else undefined  
+     * @param {*} _exchangeList 
+     * @param {*} _symbol 
+     * @param {*} _DEX 
+     * @returns 
+     */
+     static getAddressFromWhitelist(_whitelist, _exchange, _token1, _token2){
+        let address;
+        if(_whitelist != undefined && _whitelist.length > 0){
+            for (let item of _whitelist) {
+                if((item.DEX === _exchange && item.token1 === _token1 && item.token2 === _token2) || (item.DEX === _exchange && item.token1 === _token2 && item.token2 === _token1) ){
+                    address = item.address;
+                    break;
+                }
+            }
+        }
+        return address;
     }
 
     /**
@@ -133,8 +170,29 @@ class Util {
      */
     static addToBlacklist(_blacklist, _DEX, _token1, _token2, _contractTVL, _address){
         _blacklist.push({"DEX":_DEX, "token1":_token1, "token2":_token2, "TVL":_contractTVL, "address":_address});
-        console.log("####"+_DEX+" "+_token1+ " "+_token2+ " has $"+parseFloat(_contractTVL).toFixed(2)+ " | blacklisted ####");
+        console.log("#### "+_DEX+" "+_token1+ " "+_token2+ " has $"+parseFloat(_contractTVL).toFixed(2)+ " | blacklisted ####");
         return _blacklist;
+    }
+
+    /**
+     * Add item to the blacklist
+     * @param {*} _blacklist 
+     * @param {*} _DEX 
+     * @param {*} _token1 
+     * @param {*} _token2 
+     * @returns 
+     */
+     static addToWhitelist(_whitelist, _DEX, _token1, _token2, _address){
+        _whitelist.push({"DEX":_DEX, "token1":_token1, "token2":_token2, "address":_address});
+        console.log("#### "+_DEX+" "+_token1+ " "+_token2+ " found | whitelisted ####");
+        return _whitelist;
+    }
+
+    static addListToWhitelist(_oldList, _newWhitelist){
+        for(let item of _newWhitelist){
+            _oldList.push(item);
+        }
+        return _oldList;
     }
 
     /**
