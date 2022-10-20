@@ -3,12 +3,13 @@ title Fork Deploy flashloaner Arbitrageur Flashloaner script
 set netwokd=EthereumForkPast
 set port=8100
 set mainFolder=flashloaner
-
-
+:: infura https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc
+:: alchemy https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy
+set rpc=https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc
 ::set initial block
-SET /A block = 15735900  
-::set initial block
-SET /A step = -1
+SET /A block = 15633929  
+::set step to the next block
+SET /A step = -5
 
 :: sets to 1 minute loop if none parater passed
 if "%~1"=="" (
@@ -34,7 +35,7 @@ if not exist "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%net
 if exist "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\database" @RD /S /Q "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\database"
 
 ::creates fork
-start /B ganache-cli --fork https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy@%block% --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
+start /B ganache-cli --fork %rpc%@%block% --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
 timeout 10
 
 :: execute arbitrageur bot

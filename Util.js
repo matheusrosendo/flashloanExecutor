@@ -123,6 +123,24 @@ class Util {
     }
 
     /**
+     * Searches for a address in the list 
+     * @param {*} _exchangeList 
+     * @param {*} _symbol 
+     * @param {*} _DEX 
+     * @returns 
+     */
+     static isBlacklistedAddress(_blacklist, _address){
+        let found = false
+        for (let item of _blacklist) {
+            if((item.address === _address) ){
+                found = true;
+                break;
+            }
+        }
+        return found;
+    }
+
+    /**
      * Searches for a item in the blacklist  
      * @param {*} _exchangeList 
      * @param {*} _symbol 

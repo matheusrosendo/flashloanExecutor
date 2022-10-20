@@ -5,9 +5,11 @@ set port=8101
 set mainFolder=flashloaner
 set executeArbi=true
 set executeFlash=true
-
+:: infura https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc
+:: alchemy https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy
+set rpc=https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc
 ::set initial block
-SET /A block = 15748619 
+SET block=%1
 
 echo %netwokd%: Fork network at block %block%, Deploy flashloaner SC, call arbitrageur, execute flashloaner script
 
@@ -23,7 +25,7 @@ if not exist "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%net
 if exist "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\database" @RD /S /Q "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\database"
 
 ::creates fork
-start /B ganache-cli --fork https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy@%block% --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
+start /B ganache-cli --fork %rpc%@%block% --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
 timeout 10
 
 :: saves log on database folder

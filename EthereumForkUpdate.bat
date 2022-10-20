@@ -5,6 +5,9 @@ set port=800%1
 set mainFolder=flashloaner
 set executeArbi=true
 set executeFlash=true
+:: infura https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc
+:: alchemy https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy
+set rpc=https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc
 
 :: sets to no loop if none second parameter passed
 if "%~2"=="" (
@@ -28,10 +31,8 @@ if not exist "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%net
 :: try to find a database folder and delete it in this case
 if exist "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\database" @RD /S /Q "E:\Dev\Estudos\BlockchainDev\FlashLoans\%mainFolder%\Networks\%netwokd%\database"
 
-:: infura https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc
-:: alchemy https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy
 ::creates fork
-start /B ganache-cli --networkId 1 --fork https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
+start /B ganache-cli --networkId 1 --fork %rpc% --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -p %port% --db Networks/%netwokd%/database -m "please loud skin soccer slender invest thank brick blue shallow day ivory"
 timeout 10
 
 :: saves log on database folder
