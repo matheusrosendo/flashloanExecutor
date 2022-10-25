@@ -3,7 +3,7 @@ title Fork Deploy flashloaner Arbitrageur Flashloaner script
 set netwokd=EthereumForkSpecBlock
 set port=8101
 set mainFolder=flashloaner
-set executeArbi=true
+set executeArbi=false
 set executeFlash=true
 :: infura https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc
 :: alchemy https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy

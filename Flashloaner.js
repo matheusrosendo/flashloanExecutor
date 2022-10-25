@@ -7,14 +7,28 @@ const truffleConfig = require("./truffle-config.js");
 const Files = require("./Files.js");
 const Util = require("./Util.js");
 require("dotenv").config({path: ".env"});
+const blockchainConfig = require("./BlockchainConfig.js");
 
 //global variables
 let web3Instance;
+let network;
+let blockchain;
+let ownerAddress;
 
 function exit(){
     process.exit();
 }
 
+const erc20list = {
+    DAI: 0,
+    USDC: 1,
+    USDT: 2,
+    WETH: 3,
+    WMATIC: 4,
+  };
+
+//SINGLETON contract instances
+let DAIcontract, USDCcontract, USDTcontract, WETHcontract, WMATICcontract;
 
 
 /**
@@ -24,7 +38,7 @@ function exit(){
 function getWeb3Instance(_network){
     try {       
         if(web3Instance === undefined){
-            web3Instance = new Web3("http://"+truffleConfig.networks[_network].host+":"+truffleConfig.networks[_network].port);
+            web3Instance = new Web3(truffleConfig.networks[_network].provider);
             web3Instance.eth.handleRevert = true;
         }
     } catch (error) {
@@ -36,7 +50,7 @@ function getWeb3Instance(_network){
 async function getCurrentBlock(_network){
     let blockNumber;
     try {
-        block = await getWeb3Instance(_network).eth.getBlock("latest");
+        block = await web3Instance.eth.getBlock("latest");
         blockNumber = block.number;
     } catch (error) {
         throw new Error("trying to get block, verify connection with "+"http://"+truffleConfig.networks[_network].host+":"+truffleConfig.networks[_network].port);
@@ -90,9 +104,9 @@ async function executeFlashloanPromisse (network, parsedJson){
         let Web3js = getWeb3Instance(network);
         
         let amountToBorrowOfFirstToken = Util.amountToBlockchain(parsedJson.initialTokenAmount, parsedJson.initialTokenDecimals);
-        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
+        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[network].network_id].address, { from: String(process.env.OWNER_ADDRESS)})
         let FlashloanRawTx = {
-            from: truffleConfig.networks[network].EXECUTOR_ADDRESS,
+            from: String(process.env.OWNER_ADDRESS),
             chainId:truffleConfig.networks[network].network_id,
             gasLimit: 12000000,
             gasPrice: 0
@@ -110,9 +124,9 @@ function withdrawToken (_network, _tokenAddress){
     try {
         let Web3js = getWeb3Instance(_network);
         
-        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].EXECUTOR_ADDRESS })
+        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: String(process.env.OWNER_ADDRESS) })
         let FlashloanRawTx = {
-            from: truffleConfig.networks[_network].EXECUTOR_ADDRESS,
+            from: String(process.env.OWNER_ADDRESS),
             chainId:truffleConfig.networks[_network].network_id,
             gasLimit: 12000000,
             gasPrice: 0
@@ -128,18 +142,18 @@ function withdrawTokenSigned (_network, _tokenAddress){
     try {
         let Web3js = getWeb3Instance(_network);
         
-        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: truffleConfig.networks[_network].EXECUTOR_ADDRESS })
+        let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address, { from: String(process.env.OWNER_ADDRESS) })
             
         
         let FlashloanRawTx = {
-            from: truffleConfig.networks[_network].EXECUTOR_ADDRESS,
+            from: String(process.env.OWNER_ADDRESS),
             chainId:truffleConfig.networks[_network].network_id,
             gasLimit: 12000000,
             gasPrice: 0
         };
 
         //sign tx
-        let signedTxPromise = Web3js.eth.signTransaction(FlashloanRawTx, truffleConfig.networks[_network].DEV_PK);
+        let signedTxPromise = Web3js.eth.signTransaction(FlashloanRawTx, String(process.env.OWNER_PK));
                     
         //handle response tx
         signedTxPromise.then((signedTx)=>{
@@ -175,7 +189,7 @@ async function isContractOk(_network, _OwnerAddress){
     try {
         let Web3js = getWeb3Instance(_network);
         let flashloanContract = new Web3js.eth.Contract(Flashloan.abi, Flashloan.networks[truffleConfig.networks[_network].network_id].address)
-        let owner = await flashloanContract.methods.owner().call(); Flashloan
+        let owner = await flashloanContract.methods.owner().call(); 
         if (owner == _OwnerAddress){
             return true;
         } else {
@@ -198,9 +212,153 @@ async function getOwner(_network, _contract){
     }
 }
 
+async function sendEth(_from, _to, _amount){
+    let rawTx = {
+        from: _from, 
+        to: _to, 
+        value: Util.amountToBlockchain(_amount, 18),
+        maxFeePerGas: 10000000000
+    };
+
+    //sign tx
+    let signedTx = await getWeb3Instance().eth.signTransaction(rawTx, String(process.env.OWNER_PK));
+                
+    //handle response tx
+    let txPromise = new Promise((resolve, reject) =>{            
+        try {
+            let sentTx = getWeb3Instance().eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
+            
+            sentTx.on("receipt", (receipt) => {
+                console.log(`### ${_amount} ETH sent successfully: ###`);
+                resolve(receipt);
+            });
+            sentTx.on("error", (err) => {
+                console.log("### send tx error: ###");
+                throw(err);
+            });                    
+        } catch (error) {
+            reject (new Error(error));
+        }
+    });
+    return txPromise;
+}
+
+/**
+ * Converts WETH back to ETH
+ * @param {*} _amount 
+ * @returns 
+ */
+async function withdrawEthfromWeth(_amount){
+    
+    //handle response tx
+    let txPromise = new Promise(async (resolve, reject) =>{ 
+        try {            
+        
+            //get instance and encode method 
+            let wethContract = await getERC20instance(erc20list.WETH);
+            let wethAddress = blockchainConfig.blockchain[blockchain].WETH9_ADDRESS;
+            let dataApprove = wethContract.methods.approve(wethAddress, Util.amountToBlockchain(_amount)).encodeABI(); 
+            
+            //declare raw tx to approve
+            let rawApproveTx = {
+                from: ownerAddress, 
+                to: wethAddress,
+                maxFeePerGas: 10000000000,
+                data: dataApprove
+            };
+
+            //sign tx
+            let signedApproveTx = await getWeb3Instance().eth.signTransaction(rawApproveTx, ownerAddress);                
+            
+            //send signed transaction
+            let approveTx = getWeb3Instance().eth.sendSignedTransaction(signedApproveTx.raw || signedApproveTx.rawTransaction);
+            approveTx.on("receipt", async (receipt) => {
+                console.log("### amount approved successfully: ###"); 
+                //encode withdraw method 
+                let dataWithdraw = wethContract.methods.withdraw(Util.amountToBlockchain(_amount)).encodeABI(); 
+            
+                //declare raw tx to withdraw
+                let rawWithdrawTx = {
+                    from: ownerAddress, 
+                    to: wethAddress,
+                    maxFeePerGas: 10000000000,
+                    data: dataWithdraw
+                };
+
+                //sign tx
+                let signedWithdrawTx = await getWeb3Instance().eth.signTransaction(rawWithdrawTx, ownerAddress);  
+                
+                //send signed transaction
+                let withdrawTx = getWeb3Instance().eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction);
+                withdrawTx.on("receipt", (receipt) => {
+                    console.log(`### ${_amount} ETH withdrawn successfully: ###`);                                         
+                    resolve(receipt);
+                });
+                withdrawTx.on("error", (err) => {
+                    console.log("### approve tx error: ###");
+                    reject(new Error(err));
+                });            
+            });
+            approveTx.on("error", (err) => {
+                console.log("### approve tx error: ###");
+                reject(new Error(err));
+            }); 
+        } catch (error) {
+            reject(new Error(error));
+        }
+    });
+    return txPromise;   
+    
+}
+
+/**
+ * Singleton that creates a new web3 instance of a given ERC20 contract if it does not exist yet
+ * @param {*} _erc20 
+ * @returns 
+ */
+function getERC20instance(_erc20){
+    try {       
+        let ownerAddress = String(process.env.OWNER_ADDRESS);
+        let contract;
+        switch(_erc20){
+            case erc20list.WETH :
+                if(WETHcontract === undefined){
+                    WETHcontract = new web3Instance.eth.Contract(blockchainConfig.blockchain[blockchain].WETH9_ABI, blockchainConfig.blockchain[blockchain].WETH9_ADDRESS, { from: ownerAddress });
+                }
+                contract = WETHcontract;
+            break;
+        }
+        return contract;        
+    } catch (error) {
+        throw new Error(error);
+    }
+}
+
+async function getBalanceOfERC20(_erc20, _address){
+    try {
+        let erc20contract = await getERC20instance(_erc20);
+        if(erc20contract === undefined){
+            throw ("Error trying to get ERC20instance")
+        }
+        let balanceInWei = await erc20contract.methods.balanceOf(_address).call();
+        let decimals;
+        switch(_erc20){
+            case erc20list.WETH :
+                decimals = blockchainConfig.blockchain[blockchain].WETH9_DECIMALS;
+            break;
+        }
+        if(decimals === undefined){
+            throw ("Error tryng to get decimals of token on BlockchainConfig file");
+        }
+        return Util.amountFromBlockchain(balanceInWei, decimals);
+    } catch (error) {
+        throw new Error(error);
+    }
+}
+
 (async () => {
     console.time('Total Execution Time');    
-    console.log("######################### START FLASHLOAN EXECUTION #########################");
+    console.log("\n######################### START FLASHLOAN EXECUTION #########################");
 
     //read and verify arguments
     let mode = process.argv.filter((item, index) =>{return index >= 2})
@@ -210,45 +368,36 @@ async function getOwner(_network, _contract){
     }
 
     //set network and some variables used to transfer initial amounts to contract and dev account (local forks only)
-    let network = mode[1];
+    network = mode[1];
     if(truffleConfig.networks[network] == undefined){
         throw new Error("invalid network name = "+network);
     }
     console.log("### network: "+network+" ###"); 
+    blockchain = truffleConfig.networks[network].blockchain;
+    ownerAddress = String(process.env.OWNER_ADDRESS); 
     let Web3js = getWeb3Instance(network);   
     let currentBlock = await getCurrentBlock(network);
-    let DAIcontract;  
-    let DAIcontractABI = truffleConfig.networks[network].DAIabi;
     let network_id = truffleConfig.networks[network].network_id;
-    let DAItokenAddress = truffleConfig.networks[network].DAIcontract;   
-    let flashloanAddress = Flashloan.networks[network_id].address; 
-    let executorAddress = truffleConfig.networks[network].EXECUTOR_ADDRESS;
-    
-    let SwapCurveV1Address = SwapCurveV1.networks[network_id].address
-
-    let truffleAddressAccount = "0xAC3bAE300eBA121510A444ab378EC7D065789F49";
+    let DAIcontract;  
+    let DAIcontractABI = blockchainConfig.blockchain[blockchain].DAIabi;    
+    let DAItokenAddress = blockchainConfig.blockchain[blockchain].DAIcontract;   
+    let flashloanAddress = Flashloan.networks[network_id].address;   
+    let SwapCurveV1Address = SwapCurveV1.networks[network_id].address;
 
     switch(mode[0]){
         case '1': //get some ETH from a rich account and send to dev and flashloan contract  (development mode only)
         console.log("######### Mode 1 | GET DAI and ETH #########");
             //send ETH from rich account to my dev account
             await Web3js.eth.sendTransaction({
-                from: truffleConfig.networks[network].RICH_ADDRESS, 
-                to: executorAddress, 
+                from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS, 
+                to: ownerAddress, 
                 value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
             })
 
-            //send ETH to truffle account
-            await Web3js.eth.sendTransaction({
-                from: truffleConfig.networks[network].RICH_ADDRESS, 
-                to: truffleAddressAccount, 
-                value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
-            })
-
-            
-             //send ETH to swapcurve contract
+                      
+            //send ETH to swapcurve contract
              await Web3js.eth.sendTransaction({
-                from: truffleConfig.networks[network].RICH_ADDRESS, 
+                from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS, 
                 to: SwapCurveV1Address, 
                 value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
             })
@@ -256,18 +405,18 @@ async function getOwner(_network, _contract){
 
             //send ETH from rich account to smart contract
             await Web3js.eth.sendTransaction({
-                from: truffleConfig.networks[network].RICH_ADDRESS, 
+                from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS, 
                 to: flashloanAddress, 
                 value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK)
             })
             
             //send DAI from rich account to my dev account
-            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: truffleConfig.networks[network].RICH_ADDRESS })
+            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS })
             var rawTransaction = {
-                from: truffleConfig.networks[network].RICH_ADDRESS,
+                from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS,
                 to: DAItokenAddress,
                 value: 0,
-                data: DAIcontract.methods.transfer(executorAddress, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
+                data: DAIcontract.methods.transfer(ownerAddress, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
                 gas: 200000,
                 chainId: network_id
             };            
@@ -280,7 +429,7 @@ async function getOwner(_network, _contract){
 
             //send DAI from rich account to flashloan contract
             var rawTransaction = {
-                from: truffleConfig.networks[network].RICH_ADDRESS,
+                from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS,
                 to: DAItokenAddress,
                 value: 0,
                 data: DAIcontract.methods.transfer(flashloanAddress, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
@@ -296,7 +445,7 @@ async function getOwner(_network, _contract){
 
              //send DAI from rich account to swapCurve contract
              var rawTransaction = {
-                from: truffleConfig.networks[network].RICH_ADDRESS,
+                from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS,
                 to: DAItokenAddress,
                 value: 0,
                 data: DAIcontract.methods.transfer(SwapCurveV1Address, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
@@ -314,15 +463,78 @@ async function getOwner(_network, _contract){
             exit()
             
         break;
+
+        case '1.1': //get some ETH from a rich account and send to dev and flashloan contract  (development mode only)
+        console.log("######### Mode 1.1 | SIGNED TRANSACTION #########");
+           
+            let rawTx = {
+                from: process.env.OWNER_ADDRESS, 
+                to: flashloanAddress, 
+                value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK),
+                maxFeePerGas: 10000000000
+            };
+    
+            //sign tx
+            let signedTx = await Web3js.eth.signTransaction(rawTx, String(process.env.OWNER_PK));
+                        
+            //handle response tx
+            let txPromise = new Promise((resolve, reject) =>{            
+                try {
+                    let sentTx = Web3js.eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
+                    
+                    sentTx.on("receipt", (receipt) => {
+                        console.log("### tx sent successfully: ###");
+                        resolve(receipt);
+                    });
+                    sentTx.on("error", (err) => {
+                        console.log("### send tx error: ###");
+                        throw(err);
+                    });                    
+                } catch (error) {
+                    reject (new Error(error));
+                }
+            });
+            let resolvedTx = await Promise.resolve(txPromise);
+            console.log(resolvedTx);
+
+            
+        break;
+
+        case '1.2': // exchange ETH by WETH
+            try { 
+                //get weth address, to convert eth to weth just send eth to weth contract address, since it has a payable function that calls deposit function inside
+                let weth9address = blockchainConfig.blockchain[blockchain].WETH9_ADDRESS;
+                let txSentEth = await sendEth(ownerAddress, weth9address, 2);
+                console.log(txSentEth.transactionHash);
+                let balanceOwner = await getBalanceOfERC20(erc20list.WETH, ownerAddress);
+                console.log(`balanceOwner ${balanceOwner}`)
+                
+            } catch (error) {
+                throw new Error(error);
+            }
+        break;
+
+        case '1.3': // exchange WETH back to ETH
+            try { 
+                //get weth address, to convert eth to weth just send eth to weth contract address, since it has a payable function that calls deposit function inside
+                let amountETH = 5;
+                let tx = await withdrawEthfromWeth(amountETH);
+                console.log(tx.transactionHash);
+                
+                
+            } catch (error) {
+                throw new Error(error);
+            }
+        break
         
         case '2': //Fund Flashloan smart contract with DAI
             console.log("######### Mode 2 | FUND SC FLASHLOAN WITH DAI #########");
             //get some DAI from a rich account  (development mode only)
-            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: truffleConfig.networks[network].RICH_ADDRESS })
+            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS })
             
             //send DAI from rich account to flashloan contract
             var rawTransaction = {
-                from: truffleConfig.networks[network].RICH_ADDRESS,
+                from: blockchainConfig.blockchain[blockchain].RICH_ADDRESS,
                 to: DAItokenAddress,
                 value: 0,
                 data: DAIcontract.methods.transfer(flashloanAddress, Web3.utils.toWei(process.env.DAI_AMOUNT_INITIAL_FUND_ON_FORK)).encodeABI(),
@@ -344,18 +556,19 @@ async function getOwner(_network, _contract){
         // Ex: node .\Flashloaner.js 3 ethereum_fork_update
         case '3': 
         console.log("######### Mode 3 | VERIFY SC BALANCES #########");
-            if(isContractOk(network, executorAddress)){
+            if(isContractOk(network, ownerAddress)){
                 console.log("### balances of contract "+flashloanAddress+" ###");
                 //check balance of DAI in the Flashloan Smartcontract
-                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: executorAddress});
+                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: ownerAddress});
                 let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
                 console.log("DAIbalanceFlashloanContract (DAI)= " + Web3.utils.fromWei(DAIbalanceFlashloanContract));
                 console.log("DAIbalanceFlashloanContract (Wei DAI)= " + DAIbalanceFlashloanContract);
     
+                let ownerEth = await Web3js.eth.getBalance(ownerAddress);
+                console.log("ETH ownerAddress balance = " + Web3.utils.fromWei(ownerEth));
+
                 let ETHbalanceFlashloanContract = await Web3js.eth.getBalance(flashloanAddress);
                 console.log("ETHbalanceFlashloanContract = " + Web3.utils.fromWei(ETHbalanceFlashloanContract));
-                let ETHbalanceTreuffleAccount = await Web3js.eth.getBalance(truffleAddressAccount);
-                console.log("truffleAddressAccount = " + Web3.utils.fromWei(ETHbalanceTreuffleAccount));
 
                 let ETHbalanceSwapCurve = await Web3js.eth.getBalance(SwapCurveV1Address);
                 console.log("ETHbalanceSwapCurve = " + Web3.utils.fromWei(ETHbalanceSwapCurve));
@@ -363,7 +576,7 @@ async function getOwner(_network, _contract){
                 let DAIbalanceSwapCurveV1 = await DAIcontract.methods.balanceOf(SwapCurveV1Address).call();
                 console.log("DAIbalanceSwapCurveV1 = " + Web3.utils.fromWei(DAIbalanceSwapCurveV1));
 
-                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
+                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: String(process.env.OWNER_ADDRESS)})
                 let USDCbalanceSwapCurveV1 = await swapCurveContract.methods.balanceOfToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48").call();
                 console.log("USDCbalanceSwapCurveV1 = " + USDCbalanceSwapCurveV1 / Math.pow(10, 6));
                 exit();
@@ -375,14 +588,17 @@ async function getOwner(_network, _contract){
         // Ex: node .\Flashloaner.js 4 ethereum_fork_update
         case '4': 
             console.log("######### Mode 4 | EXECUTOR ACCOUNT BALANCES #########");
-            console.log("### balances of account "+executorAddress+" ###");   
+            console.log("### balances of owner account "+ownerAddress+" ###");   
             //check balance of DAI in the Flashloan Smartcontract
             DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress);
-            let DAIbalanceDevAccount = await DAIcontract.methods.balanceOf(executorAddress).call();
-            console.log("DAIbalanceDevAccount = " + Web3.utils.fromWei(DAIbalanceDevAccount));
+            let DAIbalanceDevAccount = await DAIcontract.methods.balanceOf(ownerAddress).call();
+            console.log("DAI = " + Web3.utils.fromWei(DAIbalanceDevAccount));
 
-            let ETHbalanceDevAccount = await Web3js.eth.getBalance(executorAddress);
-            console.log("ETHbalanceDevAccount = " + Web3.utils.fromWei(ETHbalanceDevAccount));
+            let ETHbalanceDevAccount = await Web3js.eth.getBalance(ownerAddress);
+            console.log("ETH = " + Web3.utils.fromWei(ETHbalanceDevAccount));
+
+            let balanceOwner = await getBalanceOfERC20(erc20list.WETH, ownerAddress);
+            console.log(`WETH ${balanceOwner}`)
             exit();
         break;
         
@@ -391,7 +607,7 @@ async function getOwner(_network, _contract){
         case '5': 
             try {
                 //verify current DAI amount
-                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: executorAddress});
+                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: ownerAddress});
                 let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
                 if (parseInt(DAIbalanceFlashloanContract) > 0){
                     let response = await withdrawToken(network, DAItokenAddress);
@@ -411,7 +627,7 @@ async function getOwner(_network, _contract){
         case '5.1': //withdraw signed
             try {
                 //verify current DAI amount
-                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: executorAddress});
+                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: ownerAddress});
                 let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
                 if (parseInt(DAIbalanceFlashloanContract) > 0){
                     let response = await withdrawTokenSigned(network, DAItokenAddress);
@@ -453,7 +669,7 @@ async function getOwner(_network, _contract){
         // ex: node .\Flashloaner.js 7 ethereum_fork_update ethereum_fork_update\FlashloanInput\2022-09-30_09-35_exec_09-36.json
         case '7': 
             try {
-                if(isContractOk(network, executorAddress)){
+                if(isContractOk(network, ownerAddress)){
                     
                     let fileName = mode[2];
                     let parsedJson = Files.parseJSONtoOjectList(fileName);
@@ -547,9 +763,9 @@ async function getOwner(_network, _contract){
                 let tokenOutAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
                 let poolAddress = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
 
-                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS})
+                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: String(process.env.OWNER_ADDRESS)})
                 let SwapCurveRawTx = {
-                    from: truffleConfig.networks[network].EXECUTOR_ADDRESS,
+                    from: String(process.env.OWNER_ADDRESS),
                     chainId:truffleConfig.networks[network].network_id,
                     gasLimit: 12000000,
                     gasPrice: 0
@@ -573,7 +789,7 @@ async function getOwner(_network, _contract){
                 let tokenOutAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
                 let poolAddress = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
 
-                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: truffleConfig.networks[network].EXECUTOR_ADDRESS});
+                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: String(process.env.OWNER_ADDRESS)});
                 let amountOut = await swapCurveContract.methods.amountOutOnCurveV1(amountToExchange, tokenInAddress, tokenOutAddress, poolAddress).call(); 
                 console.log("###### Estimated amount out ("+tokenOutAddress+"): ######");
                 console.log(amountOut / Math.pow(10, 6));
@@ -586,7 +802,7 @@ async function getOwner(_network, _contract){
         case '10': 
             console.log("######### Mode 10 | SHOW MAIN ADDRESSES #########");
             let ownerFlashloan = await getOwner(network, Flashloan);
-            console.log("executorAddress: "+executorAddress);
+            console.log("ownerAddress: "+ownerAddress);
             console.log("flashloanAddress: "+flashloanAddress);
             console.log("flashloan Owner Address: "+ownerFlashloan);
             console.log("DAItokenAddress: "+DAItokenAddress);

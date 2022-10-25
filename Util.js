@@ -218,7 +218,7 @@ class Util {
      * @param {*} _decimals 
      * @returns String representing the interger amount to be used on blockchain transactions
      */
-    static amountToBlockchain(_amount, _decimals){
+    static amountToBlockchain(_amount, _decimals = 18){
         try {            
         
             let amountInBig = new bigdecimal.BigDecimal(_amount);
@@ -241,7 +241,7 @@ class Util {
      * @param {*} _decimals 
      * @returns Number to be used outside blockchain
      */
-    static amountFromBlockchain(_amount, _decimals){
+    static amountFromBlockchain(_amount, _decimals = 18){
         
         try {
             let amountInBig = new bigdecimal.BigDecimal(_amount);
