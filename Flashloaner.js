@@ -1,15 +1,23 @@
+require("dotenv").config({path: ".env"});
 const fs = require("fs");
 const path = require("path");
 const Web3 = require('web3');
 const Flashloan = require("./build/contracts/FlashloanExecutor");
-const SwapCurveV1 = require("./build/contracts/SwapCurveV1");
 const truffleConfig = require("./truffle-config.js");
 const Files = require("./Files.js");
 const Util = require("./Util.js");
-require("dotenv").config({path: ".env"});
-const blockchainConfig = require("./BlockchainConfig.js");
+const UniswapV3ops = require("./UniswapV3ops.js");
+const ERC20ops = require("./ERC20ops.js");
+const {blockchainConfig, erc20list} = require("./BlockchainConfig.js");
 
 //global variables
+let GLOBAL = {
+    web3Instance: null,
+    network: null,
+    blockchain: null,
+    ownerAddress: null
+}
+
 let web3Instance;
 let network;
 let blockchain;
@@ -18,14 +26,6 @@ let ownerAddress;
 function exit(){
     process.exit();
 }
-
-const erc20list = {
-    DAI: 0,
-    USDC: 1,
-    USDT: 2,
-    WETH: 3,
-    WMATIC: 4,
-  };
 
 //SINGLETON contract instances
 let DAIcontract, USDCcontract, USDTcontract, WETHcontract, WMATICcontract;
@@ -243,118 +243,6 @@ async function sendEth(_from, _to, _amount){
     return txPromise;
 }
 
-/**
- * Converts WETH back to ETH
- * @param {*} _amount 
- * @returns 
- */
-async function withdrawEthfromWeth(_amount){
-    
-    //handle response tx
-    let txPromise = new Promise(async (resolve, reject) =>{ 
-        try {            
-        
-            //get instance and encode method 
-            let wethContract = await getERC20instance(erc20list.WETH);
-            let wethAddress = blockchainConfig.blockchain[blockchain].WETH9_ADDRESS;
-            let dataApprove = wethContract.methods.approve(wethAddress, Util.amountToBlockchain(_amount)).encodeABI(); 
-            
-            //declare raw tx to approve
-            let rawApproveTx = {
-                from: ownerAddress, 
-                to: wethAddress,
-                maxFeePerGas: 10000000000,
-                data: dataApprove
-            };
-
-            //sign tx
-            let signedApproveTx = await getWeb3Instance().eth.signTransaction(rawApproveTx, ownerAddress);                
-            
-            //send signed transaction
-            let approveTx = getWeb3Instance().eth.sendSignedTransaction(signedApproveTx.raw || signedApproveTx.rawTransaction);
-            approveTx.on("receipt", async (receipt) => {
-                console.log("### amount approved successfully: ###"); 
-                //encode withdraw method 
-                let dataWithdraw = wethContract.methods.withdraw(Util.amountToBlockchain(_amount)).encodeABI(); 
-            
-                //declare raw tx to withdraw
-                let rawWithdrawTx = {
-                    from: ownerAddress, 
-                    to: wethAddress,
-                    maxFeePerGas: 10000000000,
-                    data: dataWithdraw
-                };
-
-                //sign tx
-                let signedWithdrawTx = await getWeb3Instance().eth.signTransaction(rawWithdrawTx, ownerAddress);  
-                
-                //send signed transaction
-                let withdrawTx = getWeb3Instance().eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction);
-                withdrawTx.on("receipt", (receipt) => {
-                    console.log(`### ${_amount} ETH withdrawn successfully: ###`);                                         
-                    resolve(receipt);
-                });
-                withdrawTx.on("error", (err) => {
-                    console.log("### approve tx error: ###");
-                    reject(new Error(err));
-                });            
-            });
-            approveTx.on("error", (err) => {
-                console.log("### approve tx error: ###");
-                reject(new Error(err));
-            }); 
-        } catch (error) {
-            reject(new Error(error));
-        }
-    });
-    return txPromise;   
-    
-}
-
-/**
- * Singleton that creates a new web3 instance of a given ERC20 contract if it does not exist yet
- * @param {*} _erc20 
- * @returns 
- */
-function getERC20instance(_erc20){
-    try {       
-        let ownerAddress = String(process.env.OWNER_ADDRESS);
-        let contract;
-        switch(_erc20){
-            case erc20list.WETH :
-                if(WETHcontract === undefined){
-                    WETHcontract = new web3Instance.eth.Contract(blockchainConfig.blockchain[blockchain].WETH9_ABI, blockchainConfig.blockchain[blockchain].WETH9_ADDRESS, { from: ownerAddress });
-                }
-                contract = WETHcontract;
-            break;
-        }
-        return contract;        
-    } catch (error) {
-        throw new Error(error);
-    }
-}
-
-async function getBalanceOfERC20(_erc20, _address){
-    try {
-        let erc20contract = await getERC20instance(_erc20);
-        if(erc20contract === undefined){
-            throw ("Error trying to get ERC20instance")
-        }
-        let balanceInWei = await erc20contract.methods.balanceOf(_address).call();
-        let decimals;
-        switch(_erc20){
-            case erc20list.WETH :
-                decimals = blockchainConfig.blockchain[blockchain].WETH9_DECIMALS;
-            break;
-        }
-        if(decimals === undefined){
-            throw ("Error tryng to get decimals of token on BlockchainConfig file");
-        }
-        return Util.amountFromBlockchain(balanceInWei, decimals);
-    } catch (error) {
-        throw new Error(error);
-    }
-}
 
 (async () => {
     console.time('Total Execution Time');    
@@ -375,14 +263,20 @@ async function getBalanceOfERC20(_erc20, _address){
     console.log("### network: "+network+" ###"); 
     blockchain = truffleConfig.networks[network].blockchain;
     ownerAddress = String(process.env.OWNER_ADDRESS); 
-    let Web3js = getWeb3Instance(network);   
+    
+    //set GLOBAL main values
+    GLOBAL.web3Instance = getWeb3Instance(network);
+    GLOBAL.blockchain = blockchain;
+    GLOBAL.network = network;
+    GLOBAL.ownerAddress = ownerAddress;
+    
+    let Web3js = getWeb3Instance();   
     let currentBlock = await getCurrentBlock(network);
     let network_id = truffleConfig.networks[network].network_id;
     let DAIcontract;  
-    let DAIcontractABI = blockchainConfig.blockchain[blockchain].DAIabi;    
-    let DAItokenAddress = blockchainConfig.blockchain[blockchain].DAIcontract;   
+    let DAIcontractABI = blockchainConfig.blockchain[blockchain].DAI_ABI;    
+    let DAItokenAddress = blockchainConfig.blockchain[blockchain].DAI_ADDRESS;   
     let flashloanAddress = Flashloan.networks[network_id].address;   
-    let SwapCurveV1Address = SwapCurveV1.networks[network_id].address;
 
     switch(mode[0]){
         case '1': //get some ETH from a rich account and send to dev and flashloan contract  (development mode only)
@@ -466,67 +360,63 @@ async function getBalanceOfERC20(_erc20, _address){
 
         case '1.1': //get some ETH from a rich account and send to dev and flashloan contract  (development mode only)
         console.log("######### Mode 1.1 | SIGNED TRANSACTION #########");
-           
-            let rawTx = {
-                from: process.env.OWNER_ADDRESS, 
-                to: flashloanAddress, 
-                value: Web3.utils.toWei(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK),
-                maxFeePerGas: 10000000000
-            };
-    
-            //sign tx
-            let signedTx = await Web3js.eth.signTransaction(rawTx, String(process.env.OWNER_PK));
-                        
-            //handle response tx
-            let txPromise = new Promise((resolve, reject) =>{            
-                try {
-                    let sentTx = Web3js.eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
-                    
-                    sentTx.on("receipt", (receipt) => {
-                        console.log("### tx sent successfully: ###");
-                        resolve(receipt);
-                    });
-                    sentTx.on("error", (err) => {
-                        console.log("### send tx error: ###");
-                        throw(err);
-                    });                    
-                } catch (error) {
-                    reject (new Error(error));
-                }
-            });
-            let resolvedTx = await Promise.resolve(txPromise);
-            console.log(resolvedTx);
-
+            let amount = Util.amountToBlockchain(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK);
+            let from = String(process.env.OWNER_ADDRESS);
+            let to = flashloanAddress; 
+            let tx = await sendEth(from, to, amount);
+            console.log(tx.transactionHash);
             
         break;
 
         case '1.2': // exchange ETH by WETH
             try { 
                 //get weth address, to convert eth to weth just send eth to weth contract address, since it has a payable function that calls deposit function inside
+                let amountETH = 2;
                 let weth9address = blockchainConfig.blockchain[blockchain].WETH9_ADDRESS;
-                let txSentEth = await sendEth(ownerAddress, weth9address, 2);
+                let txSentEth = await sendEth(ownerAddress, weth9address, amountETH);
                 console.log(txSentEth.transactionHash);
-                let balanceOwner = await getBalanceOfERC20(erc20list.WETH, ownerAddress);
-                console.log(`balanceOwner ${balanceOwner}`)
+                let erc20ops = new ERC20ops(GLOBAL);
+                let balanceOwner = await erc20ops.getBalanceOfERC20(erc20list.WETH, ownerAddress);
+                console.log(`WETH balance of owner ${balanceOwner}`)
                 
             } catch (error) {
                 throw new Error(error);
             }
         break;
 
+        
         case '1.3': // exchange WETH back to ETH
             try { 
                 //get weth address, to convert eth to weth just send eth to weth contract address, since it has a payable function that calls deposit function inside
-                let amountETH = 5;
-                let tx = await withdrawEthfromWeth(amountETH);
-                console.log(tx.transactionHash);
-                
+                let amountETH = 2;
+                let erc20ops = new ERC20ops(GLOBAL);
+                let tx = await erc20ops.withdrawEthfromWeth(amountETH);
+                console.log(tx.transactionHash);                
+                let balanceOwner = await erc20ops.getBalanceOfERC20(erc20list.WETH, GLOBAL.ownerAddress);
+                console.log(`WETH balance of owner ${balanceOwner}`);
                 
             } catch (error) {
                 throw new Error(error);
             }
         break
         
+        case '1.4': // exchange WETH to DAI on UniswapV3
+        try { 
+            
+
+            let amount = 1;
+            let uniswapV3 = new UniswapV3ops(GLOBAL);
+            console.log(uniswapV3.getNetwork()); 
+            
+            let erc20ops = new ERC20ops(GLOBAL);
+            let balanceOwner = await erc20ops.getBalanceOfERC20(erc20list.WETH, ownerAddress);
+            console.log(`WETH balance of owner ${balanceOwner}`)
+            
+        } catch (error) {
+            throw new Error(error);
+        }
+    break
+
         case '2': //Fund Flashloan smart contract with DAI
             console.log("######### Mode 2 | FUND SC FLASHLOAN WITH DAI #########");
             //get some DAI from a rich account  (development mode only)
@@ -597,8 +487,9 @@ async function getBalanceOfERC20(_erc20, _address){
             let ETHbalanceDevAccount = await Web3js.eth.getBalance(ownerAddress);
             console.log("ETH = " + Web3.utils.fromWei(ETHbalanceDevAccount));
 
-            let balanceOwner = await getBalanceOfERC20(erc20list.WETH, ownerAddress);
-            console.log(`WETH ${balanceOwner}`)
+            let erc20ops = new ERC20ops(GLOBAL);
+            let balanceOwner = await erc20ops.getBalanceOfERC20(erc20list.WETH, ownerAddress);
+            console.log(`WETH = ${balanceOwner}`)
             exit();
         break;
         

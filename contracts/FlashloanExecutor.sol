@@ -7,7 +7,8 @@ import "./AddressCoderLib.sol";
 import "./aave/FlashLoanReceiverBase.sol";
 import "./aave/ILendingPoolAddressesProvider.sol";
 import "./aave/ILendingPool.sol";
-
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 contract FlashloanExecutor is FlashLoanReceiverBase {
     enum SwapMode{ UNISWAP_V2, CURVE_V1}
