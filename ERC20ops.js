@@ -1,57 +1,28 @@
-const {blockchainConfig, erc20list} = require("./BlockchainConfig.js");
+const {blockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const Util = require("./Util.js");
+const assert = require('assert');
 
 class ERC20ops {
     
-
     constructor (_GLOBAL){
         this.GLOBAL = _GLOBAL;
-        this.WETHcontract;
-        this.DAIcontract;
-        this.USDCcontract;
-        this.USDTcontract;
-    }
-
-    getNetwork(){
-        return this.GLOBAL.network;
+        //singleton contracts array
+        this.contracts = [];
     }
 
     /**
-     * Singleton that creates a new web3 instance of a given ERC20 contract if it does not exist yet
+     * Singleton, creates a new web3 instance of a given ERC20 contract if it does not exist yet
      * @param {*} _erc20 
      * @returns 
      */
-    getERC20instance(_erc20){
-        try {       
-            let contract;
-            switch(_erc20){
-                case erc20list.WETH :
-                    if(this.WETHcontract === undefined){
-                        this.WETHcontract = new this.GLOBAL.web3Instance.eth.Contract(blockchainConfig.blockchain[this.GLOBAL.blockchain].WETH9_ABI, blockchainConfig.blockchain[this.GLOBAL.blockchain].WETH9_ADDRESS, { from: this.GLOBAL.ownerAddress });
-                    }
-                    contract = this.WETHcontract;
-                break;
-                case erc20list.DAI :
-                    if(this.DAIcontract === undefined){
-                        this.DAIcontract = new this.GLOBAL.web3Instance.eth.Contract(blockchainConfig.blockchain[this.GLOBAL.blockchain].DAI_ABI, blockchainConfig.blockchain[this.GLOBAL.blockchain].DAI_ADDRESS, { from: this.GLOBAL.ownerAddress });
-                    }
-                    contract = this.DAIcontract;
-                break;
-                case erc20list.USDC :
-                    if(this.USDCcontract === undefined){
-                        this.USDCcontract = new this.GLOBAL.web3Instance.eth.Contract(blockchainConfig.blockchain[this.GLOBAL.blockchain].USDC9_ABI, blockchainConfig.blockchain[this.GLOBAL.blockchain].USDC9_ADDRESS, { from: this.GLOBAL.ownerAddress });
-                    }
-                    contract = this.USDCcontract;
-                break;
-                case erc20list.USDT :
-                    if(this.USDTcontract === undefined){
-                        this.USDTcontract = new this.GLOBAL.web3Instance.eth.Contract(blockchainConfig.blockchain[this.GLOBAL.blockchain].USDT9_ABI, blockchainConfig.blockchain[this.GLOBAL.blockchain].USDT9_ADDRESS, { from: this.GLOBAL.ownerAddress });
-                    }
-                    contract = this.USDTcontract;
-                break;
-
-            }
-            return contract;        
+    getERC20instance(_token){
+        try { 
+            assert(_token.address, "Error: undefined token address!");
+            if(this.contracts[_token.symbol] == undefined){
+                let contract = new this.GLOBAL.web3Instance.eth.Contract(_token.ABI, _token.address, { from: this.GLOBAL.ownerAddress });
+                this.contracts[_token.symbol] = contract;
+            }            
+            return this.contracts[_token.symbol];        
         } catch (error) {
             throw new Error(error);
         }
@@ -84,6 +55,7 @@ class ERC20ops {
                 let transferTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedTransferTx.raw || signedTransferTx.rawTransaction);
                 transferTx.on("receipt", (receipt) => {
                     console.log(`### ${_amount} ${Object.keys(erc20list)[_erc20]} transfered successfully: ###`);                                         
+                    console.log(`### tx: ${receipt.transactionHash} ###`);   
                     resolve(receipt);
                 });
                 transferTx.on("error", (err) => {
@@ -98,32 +70,14 @@ class ERC20ops {
         return txPromise;  
     }
 
-    async getBalanceOfERC20(_erc20, _address){
+    async getBalanceOfERC20(_token, _address){
         try {
-            let erc20contract = await this.getERC20instance(_erc20);
+            let erc20contract = await this.getERC20instance(_token);
             if(erc20contract === undefined){
                 throw ("Error trying to get ERC20instance")
             }
             let balanceInWei = await erc20contract.methods.balanceOf(_address).call();
-            let decimals;
-            switch(_erc20){
-                case erc20list.WETH :
-                    decimals = blockchainConfig.blockchain[this.GLOBAL.blockchain].WETH9_DECIMALS;
-                break;
-                case erc20list.DAI :
-                    decimals = blockchainConfig.blockchain[this.GLOBAL.blockchain].DAI_DECIMALS;
-                break;
-                case erc20list.USDC :
-                    decimals = blockchainConfig.blockchain[this.GLOBAL.blockchain].USDC_DECIMALS;
-                break;
-                case erc20list.USDT :
-                    decimals = blockchainConfig.blockchain[this.GLOBAL.blockchain].USDT_DECIMALS;
-                break;
-
-                default:
-                    throw new Error("informed erc20 is not on the list");
-                break;
-            }
+            let decimals = _token.decimals;
             if(decimals === undefined){
                 throw ("Error tryng to get decimals of token on BlockchainConfig file");
             }
@@ -150,11 +104,11 @@ class ERC20ops {
             try {            
                             
                 //instanctiate erc20 contract
-                let wethContract = this.getERC20instance(erc20list.WETH);
-                let wethAddress = blockchainConfig.blockchain[this.GLOBAL.blockchain].WETH9_ADDRESS;
-
+                let tokenWeth = getItemFromTokenList("symbol", "WETH", this.GLOBAL.tokenList);
+                let wethContract = this.getERC20instance(tokenWeth);
+                
                 //approve erc20 contract
-                await this.approve(erc20list.WETH, wethAddress, _amount);
+                await this.approve(tokenWeth, wethContract._address, _amount);
 
                 //encode withdraw method 
                 let dataWithdraw = wethContract.methods.withdraw(Util.amountToBlockchain(_amount)).encodeABI(); 
@@ -162,7 +116,7 @@ class ERC20ops {
                 //declare raw tx to withdraw
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
-                    to: wethAddress,
+                    to: wethContract._address,
                     maxFeePerGas: 10000000000,
                     data: dataWithdraw
                 };
@@ -173,7 +127,8 @@ class ERC20ops {
                 //send signed transaction
                 let withdrawTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction);
                 withdrawTx.on("receipt", (receipt) => {
-                    console.log(`### ${_amount} ETH withdrawn successfully: ###`);                                         
+                    console.log(`### ${_amount} ETH withdrawn successfully: ###`);   
+                    console.log(`### tx: ${receipt.transactionHash} ###`);                                         
                     resolve(receipt);
                 });
                 withdrawTx.on("error", (err) => {
@@ -193,21 +148,12 @@ class ERC20ops {
      * @param {*} _amount 
      * @returns 
      */
-     async approve(_erc20, _spender, _amount){
+     async approve(_token, _spender, _amount){
         
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {  
-                let contractInstance, tokenAddress;           
-                switch(_erc20){
-                    case erc20list.WETH :
-                        contractInstance = await this.getERC20instance(erc20list.WETH);
-                    break;
-                    default :
-                        throw new Error("informed erc20 is not on the list");
-                    break
-                }
-                
+                let contractInstance = await this.getERC20instance(_token);
                 let dataApprove = contractInstance.methods.approve(_spender, Util.amountToBlockchain(_amount)).encodeABI(); 
                 
                 //declare raw tx to approve
@@ -225,6 +171,7 @@ class ERC20ops {
                 let approveTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedApproveTx.raw || signedApproveTx.rawTransaction);
                 approveTx.on("receipt", async (receipt) => {
                     console.log("### amount approved successfully: ###"); 
+                    console.log(`### tx: ${receipt.transactionHash} ###`);   
                     resolve(receipt);          
                 });
                 approveTx.on("error", (err) => {

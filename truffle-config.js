@@ -1,6 +1,8 @@
 // const path = require("path");
 const HDWalletProvider = require("@truffle/hdwallet-provider")
 require("dotenv").config({path: ".env"});
+const config = [];
+config["EthereumForkSpecBlock"] = {rpcProvider:"http://127.0.0.1:8101"};
 
 module.exports = {
 	// See <http://truffleframework.com/docs/advanced/configuration> to customize your Truffle configuration!
@@ -71,12 +73,10 @@ module.exports = {
 	 },
 
 	 EthereumForkSpecBlock: {
-	    host: "127.0.0.1", 
-		port: 8101,
-		provider: new HDWalletProvider(process.env.OWNER_PK, "http://127.0.0.1:8101"),
+		RPCURL: config["EthereumForkSpecBlock"].rpcProvider,
+		provider: new HDWalletProvider(process.env.OWNER_PK, config["EthereumForkSpecBlock"].rpcProvider),
 	    network_id: 1,
-	    skipDryRun: true,		
-
+	    skipDryRun: true,
 		blockchain: "ethereum"
 	 },
 	  goerli: {

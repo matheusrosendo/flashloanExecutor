@@ -4,16 +4,15 @@ const truffleConfig = require("../truffle-config.js");
 
 module.exports = async function (deployer, network) {
     try {
-        if (truffleConfig.networks[network].host === undefined){
-            throw Error(`Error: Are you deploying to the correct network? (network selected: ${network})`)
+        if (truffleConfig.networks[network].RPCURL === undefined){
+            throw new Error(`Error: RPCURL not found on truffleconfig file for this network: ${network})`)
         } else {
-            console.log("#### Deploying contracs on "+network+" running on "+truffleConfig.networks[network].host+":"+truffleConfig.networks[network].port+" ####");
+            console.log(`#### Deploying contracs on ${network} running on ${truffleConfig.networks[network].RPCURL} ####`);
             await deployer.deploy(AddressCoderLib);
             await deployer.link(AddressCoderLib, FlashloanExecutor);
             await deployer.deploy(FlashloanExecutor);
         }
-
     } catch (e) {
-        console.log(`Error in migration: ${e.message}`)
+        throw (`Error deploying contracts: ${e.message}`)
     }
 }
