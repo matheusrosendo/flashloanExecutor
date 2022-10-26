@@ -58,7 +58,7 @@ class UniswapV3ops {
                 //send signed transaction
                 let withdrawTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction);
                 withdrawTx.on("receipt", (receipt) => {
-                    console.log(`### ${_amount} ETH exchanged by DAI successfully: ###`);                                         
+                    console.log(`### ${_amount} WETH exchanged by DAI successfully: ###`);                                         
                     resolve(receipt);
                 });
                 withdrawTx.on("error", (err) => {

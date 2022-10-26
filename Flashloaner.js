@@ -8,14 +8,15 @@ const Files = require("./Files.js");
 const Util = require("./Util.js");
 const UniswapV3ops = require("./UniswapV3ops.js");
 const ERC20ops = require("./ERC20ops.js");
-const {blockchainConfig, erc20list} = require("./BlockchainConfig.js");
+const {blockchainConfig, erc20list, getItemFromTokenList} = require("./BlockchainConfig.js");
 
 //global variables
 let GLOBAL = {
     web3Instance: null,
     network: null,
     blockchain: null,
-    ownerAddress: null
+    ownerAddress: null,
+    tokenList: null
 }
 
 let web3Instance;
@@ -269,6 +270,7 @@ async function sendEth(_from, _to, _amount){
     GLOBAL.blockchain = blockchain;
     GLOBAL.network = network;
     GLOBAL.ownerAddress = ownerAddress;
+    GLOBAL.tokenList = blockchainConfig.blockchain[blockchain].tokenList;
     
     let Web3js = getWeb3Instance();   
     let currentBlock = await getCurrentBlock(network);
@@ -358,7 +360,7 @@ async function sendEth(_from, _to, _amount){
             
         break;
 
-        case '1.1': //get some ETH from a rich account and send to dev and flashloan contract  (development mode only)
+        case '1.1': //(local fork development mode only) exchange eth by weth, weth by dai
         console.log("######### Mode 1.1 | SIGNED TRANSACTION #########");
             let amount = Util.amountToBlockchain(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK);
             let from = String(process.env.OWNER_ADDRESS);
@@ -380,7 +382,7 @@ async function sendEth(_from, _to, _amount){
                 console.log(`WETH balance of owner ${balanceOwner}`)
                 
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }
         break;
 
@@ -396,21 +398,49 @@ async function sendEth(_from, _to, _amount){
                 console.log(`WETH balance of owner ${balanceOwner}`);
                 
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }
         break
         
         case '1.4': // exchange WETH to DAI on UniswapV3
-        try { 
-            
-            let amount = 1;
-            let uniswapV3 = new UniswapV3ops(GLOBAL);
-            let tx = await uniswapV3.exchangeWETHbyDAI(amount, GLOBAL.ownerAddress);
-            console.log(tx.transactionHash);    
-        } catch (error) {
-            throw new Error(error);
-        }
-    break
+            try { 
+                
+                let amount = 1;
+                let uniswapV3 = new UniswapV3ops(GLOBAL);
+                let tx = await uniswapV3.exchangeWETHbyDAI(amount, GLOBAL.ownerAddress);
+                console.log(tx.transactionHash);  
+                let erc20ops = new ERC20ops(GLOBAL);  
+                let balanceOwnerDAI = await erc20ops.getBalanceOfERC20(erc20list.DAI, GLOBAL.ownerAddress);
+                console.log(`DAI balance of owner ${balanceOwnerDAI}`);
+                let balanceOwnerWETH = await erc20ops.getBalanceOfERC20(erc20list.WETH, GLOBAL.ownerAddress);
+                console.log(`WETH balance of owner ${balanceOwnerWETH}`);
+            } catch (error) {
+                throw (error);
+            }
+        break
+
+        case '1.5': // transfer all DAI to flashloan contract
+            try { 
+                let erc20ops = new ERC20ops(GLOBAL);  
+                let tx = await erc20ops.transfer(erc20list.DAI, flashloanAddress, 1000);
+                console.log(tx.transactionHash);
+                let newBalanceOwnerDAI = await erc20ops.getBalanceOfERC20(erc20list.DAI, GLOBAL.ownerAddress);
+                let newBalanceFlashloanContractDAI = await erc20ops.getBalanceOfERC20(erc20list.DAI, flashloanAddress);
+                console.log(`DAI balance of owner ${newBalanceOwnerDAI}`);
+                console.log(`DAI balance of flashloan contract ${newBalanceFlashloanContractDAI}`);
+            } catch (error) {
+                throw (error);
+            }
+        break
+
+        case '1.6': // tokenlist test
+            try { 
+               let token = getItemFromTokenList("symbol", "DAI", GLOBAL.tokenList);
+               console.log(token.address);
+            } catch (error) {
+                throw (error);
+            }
+        break
 
         case '2': //Fund Flashloan smart contract with DAI
             console.log("######### Mode 2 | FUND SC FLASHLOAN WITH DAI #########");
@@ -437,33 +467,23 @@ async function sendEth(_from, _to, _amount){
             
         break;
 
-        // check flashloan contract DAI and ETH balances
-        // Ex: node .\Flashloaner.js 3 ethereum_fork_update
+        // check flashloan contract balances
+        // Ex: node .\Flashloaner.js 3 NETWORKNAME
         case '3': 
-        console.log("######### Mode 3 | VERIFY SC BALANCES #########");
+        console.log("######### Mode 3 | VERIFY FLASHLOAN CONTRACT BALANCES #########");
             if(isContractOk(network, ownerAddress)){
                 console.log("### balances of contract "+flashloanAddress+" ###");
-                //check balance of DAI in the Flashloan Smartcontract
-                DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress, { from: ownerAddress});
-                let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
-                console.log("DAIbalanceFlashloanContract (DAI)= " + Web3.utils.fromWei(DAIbalanceFlashloanContract));
-                console.log("DAIbalanceFlashloanContract (Wei DAI)= " + DAIbalanceFlashloanContract);
-    
-                let ownerEth = await Web3js.eth.getBalance(ownerAddress);
-                console.log("ETH ownerAddress balance = " + Web3.utils.fromWei(ownerEth));
-
+                
                 let ETHbalanceFlashloanContract = await Web3js.eth.getBalance(flashloanAddress);
-                console.log("ETHbalanceFlashloanContract = " + Web3.utils.fromWei(ETHbalanceFlashloanContract));
+                console.log("ETH: " + Web3.utils.fromWei(ETHbalanceFlashloanContract));
 
-                let ETHbalanceSwapCurve = await Web3js.eth.getBalance(SwapCurveV1Address);
-                console.log("ETHbalanceSwapCurve = " + Web3.utils.fromWei(ETHbalanceSwapCurve));
+                let erc20ops = new ERC20ops(GLOBAL);  
+                let balanceContractDAI = await erc20ops.getBalanceOfERC20(erc20list.DAI, flashloanAddress);
+                console.log(`DAI: ${balanceContractDAI}`);
 
-                let DAIbalanceSwapCurveV1 = await DAIcontract.methods.balanceOf(SwapCurveV1Address).call();
-                console.log("DAIbalanceSwapCurveV1 = " + Web3.utils.fromWei(DAIbalanceSwapCurveV1));
+                let balanceContractWeth = await erc20ops.getBalanceOfERC20(erc20list.WETH, flashloanAddress);
+                console.log(`WETH: ${balanceContractWeth}`)
 
-                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: String(process.env.OWNER_ADDRESS)})
-                let USDCbalanceSwapCurveV1 = await swapCurveContract.methods.balanceOfToken("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48").call();
-                console.log("USDCbalanceSwapCurveV1 = " + USDCbalanceSwapCurveV1 / Math.pow(10, 6));
                 exit();
             }
 
@@ -472,19 +492,18 @@ async function sendEth(_from, _to, _amount){
         // check dev account DAI and ETH balances
         // Ex: node .\Flashloaner.js 4 ethereum_fork_update
         case '4': 
-            console.log("######### Mode 4 | EXECUTOR ACCOUNT BALANCES #########");
+            console.log("######### Mode 4 | OWNER ACCOUNT BALANCES #########");
             console.log("### balances of owner account "+ownerAddress+" ###");   
-            //check balance of DAI in the Flashloan Smartcontract
-            DAIcontract = await new Web3js.eth.Contract(DAIcontractABI, DAItokenAddress);
-            let DAIbalanceDevAccount = await DAIcontract.methods.balanceOf(ownerAddress).call();
-            console.log("DAI = " + Web3.utils.fromWei(DAIbalanceDevAccount));
 
             let ETHbalanceDevAccount = await Web3js.eth.getBalance(ownerAddress);
-            console.log("ETH = " + Web3.utils.fromWei(ETHbalanceDevAccount));
+            console.log("ETH: " + Web3.utils.fromWei(ETHbalanceDevAccount));
 
-            let erc20ops = new ERC20ops(GLOBAL);
-            let balanceOwner = await erc20ops.getBalanceOfERC20(erc20list.WETH, ownerAddress);
-            console.log(`WETH = ${balanceOwner}`)
+            let erc20ops = new ERC20ops(GLOBAL);  
+            let balanceOwnerDAI = await erc20ops.getBalanceOfERC20(erc20list.DAI, ownerAddress);
+            console.log(`DAI: ${balanceOwnerDAI}`);
+
+            let balanceOwnerWeth = await erc20ops.getBalanceOfERC20(erc20list.WETH, ownerAddress);
+            console.log(`WETH: ${balanceOwnerWeth}`)
             exit();
         break;
         
@@ -507,7 +526,7 @@ async function sendEth(_from, _to, _amount){
                 }
                 
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }
         break;
         case '5.1': //withdraw signed
@@ -527,7 +546,7 @@ async function sendEth(_from, _to, _amount){
                 }
                 
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }
         break;
         
@@ -547,7 +566,7 @@ async function sendEth(_from, _to, _amount){
                     await Files.serializeObjectListToLogFile(logPath, logContent);
                 }   
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }         
         break;
         
@@ -573,7 +592,7 @@ async function sendEth(_from, _to, _amount){
                     }
                 }
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }
         
         break;
@@ -633,7 +652,7 @@ async function sendEth(_from, _to, _amount){
                     await Promise.all(promiseFileList);
                 }
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }
         
         break;
@@ -662,7 +681,7 @@ async function sendEth(_from, _to, _amount){
                 let newBalance = await swapCurveContract.methods.balanceOfToken(tokenOutAddress).call();
                 console.log(newBalance / Math.pow(10, 6));
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }
         break;
         case '9.2': 
@@ -680,7 +699,7 @@ async function sendEth(_from, _to, _amount){
                 console.log("###### Estimated amount out ("+tokenOutAddress+"): ######");
                 console.log(amountOut / Math.pow(10, 6));
             } catch (error) {
-                throw new Error(error);
+                throw (error);
             }
         break;
 

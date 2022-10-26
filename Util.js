@@ -220,7 +220,9 @@ class Util {
      */
     static amountToBlockchain(_amount, _decimals = 18){
         try {            
-        
+            if(_amount === 0){
+                return _amount;
+            }
             let amountInBig = new bigdecimal.BigDecimal(_amount);
             let decimalsInt = new bigdecimal.BigDecimal(Math.pow(10, parseInt(_decimals)));
             let bigResult, strResult;
@@ -244,6 +246,9 @@ class Util {
     static amountFromBlockchain(_amount, _decimals = 18){
         
         try {
+            if(_amount === 0){
+                return _amount;
+            }
             let amountInBig = new bigdecimal.BigDecimal(_amount);
             let decimalsInt = new bigdecimal.BigDecimal(Math.pow(10, parseInt(_decimals)));
             let newResult;
