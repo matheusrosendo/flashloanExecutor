@@ -403,15 +403,10 @@ async function sendEth(_from, _to, _amount){
         case '1.4': // exchange WETH to DAI on UniswapV3
         try { 
             
-
             let amount = 1;
             let uniswapV3 = new UniswapV3ops(GLOBAL);
-            console.log(uniswapV3.getNetwork()); 
-            
-            let erc20ops = new ERC20ops(GLOBAL);
-            let balanceOwner = await erc20ops.getBalanceOfERC20(erc20list.WETH, ownerAddress);
-            console.log(`WETH balance of owner ${balanceOwner}`)
-            
+            let tx = await uniswapV3.exchangeWETHbyDAI(amount, GLOBAL.ownerAddress);
+            console.log(tx.transactionHash);    
         } catch (error) {
             throw new Error(error);
         }
