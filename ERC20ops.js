@@ -36,9 +36,14 @@ class ERC20ops {
                             
                 //instanctiate erc20 contract
                 let contract = this.getERC20instance(_erc20);
+
+                //verify current balance
+                let currentTokenBalance = await this.getBalanceOfERC20(_erc20, this.GLOBAL.ownerAddress);
+                assert(currentTokenBalance >= _amount, `Error: insuficient amount of ${_erc20.symbol}: ${currentTokenBalance} `);
+                assert(_amount > 0, `Error: amount = 0 `); 
                
                 //encode transfer method 
-                let dataTransfer = contract.methods.transfer(_to, Util.amountToBlockchain(_amount)).encodeABI(); 
+                let dataTransfer = contract.methods.transfer(_to, Util.amountToBlockchain(_amount, _erc20.decimals)).encodeABI(); 
             
                 //declare raw tx to transfer
                 let rawTransferTx = {
@@ -52,16 +57,10 @@ class ERC20ops {
                 let signedTransferTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawTransferTx, this.GLOBAL.ownerAddress);  
                 
                 //send signed transaction
-                let transferTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedTransferTx.raw || signedTransferTx.rawTransaction);
-                transferTx.on("receipt", (receipt) => {
-                    console.log(`### ${_amount} ${Object.keys(erc20list)[_erc20]} transfered successfully: ###`);                                         
-                    console.log(`### tx: ${receipt.transactionHash} ###`);   
-                    resolve(receipt);
-                });
-                transferTx.on("error", (err) => {
-                    console.log("### approve tx error: ###");
-                    reject(new Error(err));
-                }); 
+                let transferTx = await this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedTransferTx.raw || signedTransferTx.rawTransaction);
+                console.log(`### ${_amount} ${_erc20.symbol} transfered successfully: ###`);   
+                console.log(`### tx: ${transferTx.transactionHash} ###`);       
+                resolve(transferTx);
 
             } catch (error) {
                 reject(new Error(error));
@@ -154,7 +153,7 @@ class ERC20ops {
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {  
                 let contractInstance = await this.getERC20instance(_token);
-                let dataApprove = contractInstance.methods.approve(_spender, Util.amountToBlockchain(_amount)).encodeABI(); 
+                let dataApprove = contractInstance.methods.approve(_spender, Util.amountToBlockchain(_amount, _token.decimals)).encodeABI(); 
                 
                 //declare raw tx to approve
                 let rawApproveTx = {

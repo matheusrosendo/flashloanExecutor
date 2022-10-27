@@ -5,6 +5,8 @@
  const fs = require("fs");
  const csvParser =  require("csv-parser");
  const assert = require('assert');
+ const Util = require("./Util.js");
+ const path = require("path");
  
  class Files {
      /**
@@ -283,6 +285,50 @@
          }        
          return filesNames
      }
+
+    /**
+     * Save file with the result of a flashloan execution
+     * @param {*} _response 
+     * @param {*} _parsedJson 
+     * @param {*} _inputFileName 
+     * @param {*} _outputFolder 
+     * @returns 
+     */ 
+    static async serializeFlashloanResult(_response, _parsedJson, _inputFileName, _outputFolder, _oldBalance, _newBalance){
+        let serializedFile;
+
+        try {
+            let profit = _newBalance - _oldBalance; 
+            //get result data
+            let result = {
+                tx: _response.transactionHash,
+                blockNumber: _response.blockNumber,
+                tokenBorrowed: _parsedJson.addressPath[1],
+                oldBalance: _oldBalance,
+                newBalance: _newBalance,
+                profit: profit
+            }
+            _parsedJson.result = result;
+            
+            //define new file name and serialize it
+            let originalFileArr = _inputFileName.split("\\");
+            let originalFileName = originalFileArr[originalFileArr.length-1];
+            let newFileName = originalFileName.split(".")[0];
+            newFileName = newFileName + "_exec_"+Util.formatTimeForFileName(new Date())+".json";
+            let fileNameEntirePath = path.join(_outputFolder, newFileName);
+            
+            await Files.serializeObjectListToJson(fileNameEntirePath, _parsedJson);
+            let testSerializedFile = Files.parseJSONtoOjectList(fileNameEntirePath);
+            if(testSerializedFile !== undefined && testSerializedFile !== null){
+                serializedFile = {};
+                serializedFile.content = testSerializedFile;
+                serializedFile.route = fileNameEntirePath;
+            }
+        } catch (error) {
+            throw new Error(`Error serializing log file: ${error} `);  
+        }
+        return serializedFile;
+    }
  
          
  }

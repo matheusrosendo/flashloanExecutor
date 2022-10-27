@@ -1,8 +1,8 @@
 // const path = require("path");
 const HDWalletProvider = require("@truffle/hdwallet-provider")
 require("dotenv").config({path: ".env"});
-const config = [];
-config["EthereumForkSpecBlock"] = {rpcProvider:"http://127.0.0.1:8101"};
+const {blockchainConfig} = require("./BlockchainConfig.js");
+
 
 module.exports = {
 	// See <http://truffleframework.com/docs/advanced/configuration> to customize your Truffle configuration!
@@ -56,11 +56,9 @@ module.exports = {
 		blockchain: "ethereum"
 	 },
 	 EthereumForkUpdate5: {
-	    host: "127.0.0.1", 
-		port: 8005,
+		url: blockchainConfig.network["EthereumForkUpdate5"].RPC_PROVIDER_URL,
 	    network_id: 1,
-	    skipDryRun: true,		
-
+	    skipDryRun: true,
 		blockchain: "ethereum"
 	 },
 	 EthereumForkPast: {
@@ -73,11 +71,12 @@ module.exports = {
 	 },
 
 	 EthereumForkSpecBlock: {
-		RPCURL: config["EthereumForkSpecBlock"].rpcProvider,
-		provider: new HDWalletProvider(process.env.OWNER_PK, config["EthereumForkSpecBlock"].rpcProvider),
+		provider: new HDWalletProvider(process.env.OWNER_PK, blockchainConfig.network["EthereumForkSpecBlock"].RPC_PROVIDER_URL),
 	    network_id: 1,
 	    skipDryRun: true,
-		blockchain: "ethereum"
+		blockchain: "ethereum",
+		networkCheckTimeout: 10000000,
+		timeoutBlocks: 10000000
 	 },
 	  goerli: {
 	    provider: new HDWalletProvider(process.env.OWNER_PK, "https://goerli.infura.io/v3/" + process.env.INFURA_API_KEY),
