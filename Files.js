@@ -322,7 +322,7 @@
             if(testSerializedFile !== undefined && testSerializedFile !== null){
                 serializedFile = {};
                 serializedFile.content = testSerializedFile;
-                serializedFile.route = fileNameEntirePath;
+                serializedFile.location = fileNameEntirePath;
             }
         } catch (error) {
             throw new Error(`Error serializing log file: ${error} `);  

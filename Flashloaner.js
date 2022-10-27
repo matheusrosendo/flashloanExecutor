@@ -266,10 +266,10 @@ function getERC20(_symbol){
     
     // if flashloan address was set in .env, set FLASHLOAN_ADFRESS global variable with it, 
     // or use local deployed contract address otherwise 
-    if(!blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOAN_ADDRESS){
-        FLASHLOAN_ADDRESS = Flashloan.networks[GLOBAL.networkId].address;  
+    if(blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOAN_ADDRESS){
+        FLASHLOAN_ADDRESS = blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOAN_ADDRESS 
     } else {
-        FLASHLOAN_ADDRESS = blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOAN_ADDRESS
+        FLASHLOAN_ADDRESS = Flashloan.networks[GLOBAL.networkId].address; 
     }
      
     switch(mode[0]){
@@ -646,7 +646,7 @@ function getERC20(_symbol){
                     console.log("##### None new file found in "+directoryPath+" #####")
                 } else {
                     //execute flashloan for each file
-                    let promiseFileList = resolvedFiles.map(async (file) => {                  
+                    for(let file of resolvedFiles){                 
                         if(file !== undefined){
                             try {
                                 //parse flashloan file
@@ -669,14 +669,14 @@ function getERC20(_symbol){
 
                                     //serialize log file with the execution data
                                     let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
-                                    console.log("##### Flashloan Executed! output file:"+serializedFile.route+" results: #####")
+                                    console.log("##### Flashloan Executed! output file:"+serializedFile.location+" results: #####")
                                     console.log(serializedFile.content.result);
                                     
                                     //remove original input file
                                     if(serializedFile){
-                                        Files.deleteFile(completeFileName);                        
+                                        console.log("!!!uncoment to delete original file")
+                                        //Files.deleteFile(completeFileName);                        
                                     }
-                                    return serializedFile;
                                 } else {
                                     throw("Error: undefined response returned from executeFlashloan function!");
                                 }
@@ -684,8 +684,7 @@ function getERC20(_symbol){
                                 throw (error);
                             }
                         }
-                    });
-                    await Promise.all(promiseFileList);
+                    }
                 }
             } catch (error) {
                 throw (error);

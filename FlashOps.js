@@ -70,6 +70,7 @@ class FlashOps {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
                     maxFeePerGas: 10000000000,
+                    gasLimit: 10000000,
                     data: encodedMethod
                 };
 
