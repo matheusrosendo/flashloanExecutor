@@ -59,13 +59,13 @@ if %executeFlash%==true (
         :: put check smart contract balance
         node .\Flashloaner.js 2 %netwokd% 
         :: execute flashloan
-        ::node .\Flashloaner.js 8 %netwokd% Networks\%netwokd%\FlashloanInput 
+        node .\Flashloaner.js 8 %netwokd% Networks\%netwokd%\FlashloanInput 
         :: withdraw profit
-        ::node .\Flashloaner.js 5 %netwokd%
+        node .\Flashloaner.js 5 %netwokd%
         :: put check smart contract balance
-        ::node .\Flashloaner.js 3 %netwokd%
+        node .\Flashloaner.js 3 %netwokd%
         :: put check account balance
-        ::node .\Flashloaner.js 4 %netwokd%
+        node .\Flashloaner.js 4 %netwokd%
     )
 )
 

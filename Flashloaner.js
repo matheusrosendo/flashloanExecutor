@@ -300,142 +300,24 @@ function getERC20(_symbol){
             
         break;
 
-        case '1.1': //(local fork development mode only) exchange eth by weth, weth by dai
-        console.log("######### Mode 1.1 | SIGNED TRANSACTION #########");
-            let amount = Util.amountToBlockchain(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK);
-            let from = String(process.env.OWNER_ADDRESS);
-            let to = flashloanAddress; 
-            let tx = await sendEth(from, to, amount);
-            console.log(tx.transactionHash);
-            
-        break;
-
-        case '1.2': // exchange ETH by WETH
-            try { 
-                //get weth address, to convert eth to weth just send eth to weth contract address, since it has a payable function that calls deposit function inside
-                let amountETH = 2;
-                let weth9address = getERC20("WETH").address;
-                let txSentEth = await sendEth(GLOBAL.ownerAddress, weth9address, amountETH);
-                console.log(txSentEth.transactionHash);
-                let erc20ops = new ERC20ops(GLOBAL);
-                let balanceOwner = await erc20ops.getBalanceOfERC20(getERC20("WETH"), GLOBAL.ownerAddress);
-                console.log(`WETH balance of owner ${balanceOwner}`)
-                
-            } catch (error) {
-                throw (error);
-            }
-        break;
-
-        
-        case '1.3': // exchange WETH back to ETH
-            try { 
-                //get weth address, to convert eth to weth just send eth to weth contract address, since it has a payable function that calls deposit function inside
-                let amountETH = 2;
-                let erc20ops = new ERC20ops(GLOBAL);
-                let tx = await erc20ops.withdrawEthfromWeth(amountETH);
-                console.log(tx.transactionHash);                
-                let balanceOwner = await erc20ops.getBalanceOfERC20(getERC20("WETH"), GLOBAL.ownerAddress);
-                console.log(`WETH balance of owner ${balanceOwner}`);
-                
-            } catch (error) {
-                throw (error);
-            }
-        break
-        
-        case '1.4': // exchange WETH to DAI on UniswapV3
-            try { 
-                
-                let amount = 1;
-                let erc20ops = new ERC20ops(GLOBAL);  
-                let balanceOwnerWETH = await erc20ops.getBalanceOfERC20(getERC20("WETH"), GLOBAL.ownerAddress);
-                console.log(`Current WETH balance of owner ${balanceOwnerWETH}`);
-                if(balanceOwnerWETH < amount){
-                    throw new Error("not enough balance of WETH");
-                } else {
-                    let uniswapV3 = new UniswapV3ops(GLOBAL);
-                    let tx = await uniswapV3.exchangeWETHbyDAI(amount, GLOBAL.ownerAddress);
-                    console.log(tx.transactionHash);  
-                    
-                    let balanceOwnerDAI = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
-                    console.log(`DAI balance of owner ${balanceOwnerDAI}`);
-                    let newBalanceOwnerWETH = await erc20ops.getBalanceOfERC20(getERC20("WETH"), GLOBAL.ownerAddress);
-                    console.log(`WETH balance of owner ${newBalanceOwnerWETH}`);
-                }
-            } catch (error) {
-                throw (error);
-            }
-        break
-
-        case '1.5': // transfer DAI to flashloan contract
-            try { 
-                let erc20ops = new ERC20ops(GLOBAL);  
-                let tx = await erc20ops.transfer(getERC20("DAI"), flashloanAddress, 1000);
-                console.log(tx.transactionHash);
-                let newBalanceOwnerDAI = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
-                let newBalanceFlashloanContractDAI = await erc20ops.getBalanceOfERC20(getERC20("DAI"), flashloanAddress);
-                console.log(`DAI balance of owner ${newBalanceOwnerDAI}`);
-                console.log(`DAI balance of flashloan contract ${newBalanceFlashloanContractDAI}`);
-            } catch (error) {
-                throw (error);
-            }
-        break
-
-        case '1.6': // withdraw token from contract
-            try { 
-               let flashOps = new FlashOps(GLOBAL, FLASHLOAN_ADDRESS);
-               let tx = flashOps.withdrawToken(getERC20("DAI"));
-               console.log(tx.transactionHash);
-            } catch (error) {
-                throw (error);
-            }
-        break
-        case '1.7': // swap between two token on UniswapV3
-            try { 
-               let uniOps = new UniswapV3ops(GLOBAL, FLASHLOAN_ADDRESS);
-               await uniOps.swap(2, getERC20("WETH"), getERC20("DAI"), 500);
-               await uniOps.swap(2000, getERC20("DAI"), getERC20("USDC"), 100);
-               await uniOps.swap(500, getERC20("DAI"), getERC20("USDT"), 100);
-               
-            } catch (error) {
-                throw (error);
-            }
-        break
-        case '1.8': // getPool address on UniswapV3
-            try { 
-               let uniOps = new UniswapV3ops(GLOBAL, FLASHLOAN_ADDRESS);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 10000);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 3000);               
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 500);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 100);
-
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 10000);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 3000);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 500);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 100);
-
-               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 10000);
-               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 3000);
-               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 500);
-               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 100);
-            } catch (error) {
-                throw (error);
-            }
-        break
-
         case '2': //Fund Flashloan smart contract with DAI and USDC
             console.log("######### Mode 2 | FUND FLASHLOAN CONTRACT #########");
             try {               
                 let erc20ops = new ERC20ops(GLOBAL);
                 let balanceDAIowner = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
-                let balanceWei = Util.amountToBlockchain(balanceDAIowner, 18);
-
                  
-                assert(balanceDAIowner > 0, "Insuficitne DAI on owner address");
-                await erc20ops.transfer( getERC20("DAI"), FLASHLOAN_ADDRESS, Number(balanceDAIowner).toFixedDown(4));
- 
+                if(balanceDAIowner > 1){
+                    await erc20ops.transfer( getERC20("DAI"), FLASHLOAN_ADDRESS, Number(balanceDAIowner).toFixedDown(4));
+                } else{
+                   console.error("Warning: no DAI on owner address");
+                }
+
                 let balanceUSDCowner = await erc20ops.getBalanceOfERC20(getERC20("USDC"), GLOBAL.ownerAddress);
-                assert(balanceUSDCowner > 0, "Insuficitne USDC on owner address");
-                await erc20ops.transfer( getERC20("USDC"), FLASHLOAN_ADDRESS, Number(balanceUSDCowner).toFixedDown(4));
+                if(balanceUSDCowner > 1){
+                    await erc20ops.transfer( getERC20("USDC"), FLASHLOAN_ADDRESS, Number(balanceUSDCowner).toFixedDown(4));
+                } else{
+                   console.error("Warning: no USDC on owner address");
+                }
 
                 console.log("\n### contract balances: ###");
                 await showBalances(FLASHLOAN_ADDRESS); 
@@ -474,49 +356,18 @@ function getERC20(_symbol){
         break;
         
         //withdraw DAI to owner
-         // Ex: node .\Flashloaner.js 5 ethereum_fork_update
+        // Ex: node .\Flashloaner.js 5 networkName
         case '5': 
-            try {
-                //verify current DAI amount
-                DAIcontract = await new GLOBAL.web3Instance.eth.Contract(DAIcontractABI, DAItokenAddress, { from: GLOBAL.ownerAddress});
-                let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
-                if (parseInt(DAIbalanceFlashloanContract) > 0){
-                    let response = await withdrawToken(network, DAItokenAddress);
-                    if (response){
-                        let DAIwithdrawn = parseInt(response.events.LogWithdraw.returnValues.amount);
-                        console.log("#### CONGRATS!!! "+parseFloat(DAIwithdrawn / Math.pow(10, 18) ).toFixed(2)+" DAI withdrawn with success! ####")
-                        console.log("tx: "+response.transactionHash);                    
-                    }
-                } else {
-                    console.log("### NO BALANCE of DAI found for "+flashloanAddress);
-                }
-                
+            try { 
+                let flashOps = new FlashOps(GLOBAL, FLASHLOAN_ADDRESS);
+                let tx = await flashOps.withdrawToken(getERC20("DAI"));
+                console.log(tx.transactionHash);
             } catch (error) {
                 throw (error);
             }
         break;
-        case '5.1': //withdraw signed
-            try {
-                //verify current DAI amount
-                DAIcontract = await new GLOBAL.web3Instance.eth.Contract(DAIcontractABI, DAItokenAddress, { from: GLOBAL.ownerAddress});
-                let DAIbalanceFlashloanContract = await DAIcontract.methods.balanceOf(flashloanAddress).call();
-                if (parseInt(DAIbalanceFlashloanContract) > 0){
-                    let response = await withdrawTokenSigned(network, DAItokenAddress);
-                    if (response){
-                        let DAIwithdrawn = parseInt(response.events.LogWithdraw.returnValues.amount);
-                        console.log("#### CONGRATS!!! "+parseFloat(DAIwithdrawn / Math.pow(10, 18) ).toFixed(2)+" DAI withdrawn with success! ####")
-                        console.log("tx: "+response.transactionHash);                    
-                    }
-                } else {
-                    console.log("### NO BALANCE of DAI found for "+flashloanAddress);
-                }
-                
-            } catch (error) {
-                throw (error);
-            }
-        break;
-        
-        // print last block   
+               
+        // serialize last block in a log file inside database folder   
         case '6': 
             try {
                 console.log("######### Mode 6 | LOG BLOCK INFO #########");
@@ -536,98 +387,12 @@ function getERC20(_symbol){
                 throw (error);
             }         
         break;
+               
         
-        // execute flash loan reading from a specific file
-        // ex: node .\Flashloaner.js 7 ethereum_fork_update ethereum_fork_update\FlashloanInput\2022-09-30_09-35_exec_09-36.json
-        case '7': 
-            try {
-                if(isContractOk(network, GLOBAL.ownerAddress)){
-                    
-                    let fileName = mode[2];
-                    let parsedJson = Files.parseJSONtoOjectList(fileName);
-                    if(parsedJson == undefined){
-                        throw new Error("file not found "+fileName);
-                    }
-                    network = parsedJson.network;
-                    
-                    let response = await executeFlashloanPromisse(network, parsedJson);
-                    let serializedFile = await serializeResult(response, parsedJson, fileName, network);
-                    console.log(serializedFile.result);
-                    //remove original input file
-                    if(serializedFile){
-                        Files.deleteFile(fileName);
-                    }
-                }
-            } catch (error) {
-                throw (error);
-            }
-        
-        break;
-       
         //search for a new file on flashloan input folder and execute it
-        //ex: node .\Flashloaner.js 8 ethereum_fork_update ethereum_fork_update\FlashloanInput
+        //ex: node .\Flashloaner.js 8 networkName Networks\networkName\FlashloanInput
         case '8': 
             console.log("######### Mode 8 | VERIFY INPUT FOLDER AND EXECUTE FLASHLOAN #########");
-            
-            try {
-                if(mode.length < 3){
-                    throw new Error("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
-                }
-
-                //adjust to relative or absolute path
-                let directoryPath = mode[2];
-                if (directoryPath.search(":") == -1){
-                    directoryPath = path.join(__dirname, mode[2]);
-                } 
-
-                //get flashloan files from directory informed
-                let resolvedFiles = Files.listFiles(directoryPath);
-                if(resolvedFiles.length == 0){
-                    console.log("##### None new file found in "+directoryPath+" #####")
-                } else {
-                    //execute flashloan for each file
-                    let promiseFileList = resolvedFiles.map(async (file) => {                  
-                        if(file !== undefined){
-                            try {
-                                //parse flashloan file
-                                let completeFileName = path.join(directoryPath, file);
-                                let parsedJson = Files.parseJSONtoOjectList(completeFileName);
-                                
-                                //execute flashloan
-                                let response = await executeFlashloanPromisse(network, parsedJson);
-                                
-                                //parse response data
-                                if(response === undefined || response === null){
-                                    console.log("Error: undefined response returned from executeFlashloanPromisse function!")
-                                } else {
-                                    //serialize log file with the execution data
-                                    let serializedFile = await serializeResult(response, parsedJson, completeFileName, network);
-                                    console.log("##### Flashloan Executed! output file:"+serializedFile.route+" results: #####")
-                                    console.log(serializedFile.content.result);
-                                    
-                                    //remove original input file
-                                    if(serializedFile){
-                                        Files.deleteFile(completeFileName);                        
-                                    }
-                                    return serializedFile;
-                                }
-                            } catch (error) {
-                                throw new Error(error);
-                            }
-                        }
-                    });
-                    await Promise.all(promiseFileList);
-                }
-            } catch (error) {
-                throw (error);
-            }
-        
-        break;
-
-        //search for a new file on flashloan input folder and execute it
-        //ex: node .\Flashloaner.js 8 ethereum_fork_update ethereum_fork_update\FlashloanInput
-        case '8.1': 
-            console.log("######### Mode 8.1 | VERIFY INPUT FOLDER AND EXECUTE FLASHLOAN #########");
             
             try {
                 if(mode.length < 3){
@@ -691,88 +456,48 @@ function getERC20(_symbol){
             }
         
         break;
-        
-        
-        case '9.1': 
-            console.log("######### Mode 9.1 | TEST CURVE SWAP #########");
-            try {
-                let Web3js = getWeb3Instance(network);
-        
-                let amountToExchange = Web3.utils.toWei("1000");
-                let tokenInAddress = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
-                let tokenOutAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-                let poolAddress = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
 
-                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: String(process.env.OWNER_ADDRESS)})
-                let SwapCurveRawTx = {
-                    from: String(process.env.OWNER_ADDRESS),
-                    chainId:truffleConfig.networks[network].network_id,
-                    gasLimit: 12000000,
-                    gasPrice: 0
-                };
-                let txResult = await swapCurveContract.methods.exchangeOnCurveV1(amountToExchange, tokenInAddress, tokenOutAddress, poolAddress).send(SwapCurveRawTx); 
-                console.log(txResult.events.LoggerSwap.returnValues);
-                console.log("###### New amount of ("+tokenOutAddress+"): ######");
-                let newBalance = await swapCurveContract.methods.balanceOfToken(tokenOutAddress).call();
-                console.log(newBalance / Math.pow(10, 6));
+        
+        case '9': // getPool address on UniswapV3
+            try { 
+               let uniOps = new UniswapV3ops(GLOBAL, FLASHLOAN_ADDRESS);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 10000);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 3000);               
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 500);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 100);
+
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 10000);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 3000);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 500);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 100);
+
+               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 10000);
+               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 3000);
+               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 500);
+               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 100);
             } catch (error) {
                 throw (error);
             }
-        break;
-        case '9.2': 
-            console.log("######### Mode 9.2 | TEST AMOUNT OUT CURVE SWAP #########");
-            try {
-                let Web3js = getWeb3Instance(network);
+        break
         
-                let amountToExchange = Web3.utils.toWei("1000");
-                let tokenInAddress = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
-                let tokenOutAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-                let poolAddress = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
-
-                let swapCurveContract = new Web3js.eth.Contract(SwapCurveV1.abi, SwapCurveV1.networks[truffleConfig.networks[network].network_id].address, { from: String(process.env.OWNER_ADDRESS)});
-                let amountOut = await swapCurveContract.methods.amountOutOnCurveV1(amountToExchange, tokenInAddress, tokenOutAddress, poolAddress).call(); 
-                console.log("###### Estimated amount out ("+tokenOutAddress+"): ######");
-                console.log(amountOut / Math.pow(10, 6));
-            } catch (error) {
-                throw (error);
-            }
-        break;
-
         //show main address
         case '10': 
             console.log("######### Mode 10 | SHOW MAIN ADDRESSES #########");
             let ownerFlashloan = await getOwner(network, Flashloan);
-            console.log("GLOBAL.GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
-            console.log("flashloanAddress: "+flashloanAddress);
+            console.log("GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
+            console.log("flashloanAddress: "+FLASHLOAN_ADDRESS);
             console.log("flashloan Owner Address: "+ownerFlashloan);
-            console.log("DAItokenAddress: "+DAItokenAddress);
-            console.log("Host: "+truffleConfig.networks[network].host);
-            console.log("Port: "+truffleConfig.networks[network].port);
-
-
-        break;
-        //show main address
-        case '11': 
+            console.log("DAItokenAddress: "+getERC20("DAI").address);
+            console.log("RPC Provider URL: "+blockchainConfig.network[GLOBAL.network].RPC_PROVIDER_URL);
             let chainId = await GLOBAL.web3Instance.eth.getChainId()
             console.log("chainId = "+chainId);
-
-
         break;
-
-        //testes com amountTo and AmountFrom
-        case '12':
-            let testeResultTo = Util.amountToBlockchain(5, 8);
-            let testeResultFrom = Util.amountFromBlockchain(testeResultTo, 8);
-            console.log(testeResultTo);
-            console.log(testeResultFrom);
-            
-        break;
+        
         
         //testes transaction receipt
         case '12':
             let receipt = GLOBAL.web3Instance.eth.getTransactionReceipt("0x96944bfb6718105f6a7a89d5092ba6417594b2f8bb4e33f14d952a881f537679");
-            console.log(receipt);
-            
+            console.log(receipt);            
         break;
         
 
