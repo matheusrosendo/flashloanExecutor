@@ -1,5 +1,6 @@
 let AddressCoderLib = artifacts.require("AddressCoder");
 let FlashloanExecutor = artifacts.require("FlashloanExecutor");
+let FlashloanDodo = artifacts.require("FlashloanDodo");
 const truffleConfig = require("../truffle-config.js");
 const {blockchainConfig} = require("../BlockchainConfig.js");
 
@@ -9,7 +10,9 @@ module.exports = async function (deployer, network) {
             console.log(`#### Deploying contracs on ${network} running on ${blockchainConfig.network[network].RPC_PROVIDER_URL} ####`);
             await deployer.deploy(AddressCoderLib);
             await deployer.link(AddressCoderLib, FlashloanExecutor);
+            await deployer.link(AddressCoderLib, FlashloanDodo);
             await deployer.deploy(FlashloanExecutor);
+            await deployer.deploy(FlashloanDodo);
         } else {
             throw new Error(`Error: url or provider not found on truffleconfig file for this network: ${network})`)
         }

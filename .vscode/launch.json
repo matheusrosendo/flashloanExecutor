@@ -13,7 +13,7 @@
             ],
             "program": "${file}",
             //"args": ["8", "EthereumForkUpdate5", "Networks\\EthereumForkUpdate5\\FlashloanInput"]
-            "args": ["8.1", "EthereumForkSpecBlock", "Networks\\EthereumForkSpecBlock\\FlashloanInput"]
+            "args": ["EthereumForkSpecBlock"]
             //"args": ["7", "E:/Dev/Estudos/BlockchainDev/FlashLoans/flashloaner/ethereum_fork_update/FlashloanInput/teste.json"]
         }
     ]

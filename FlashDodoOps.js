@@ -1,7 +1,7 @@
 const {blockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const Util = require("./Util.js");
 const assert = require('assert');
-const Flashloan = require("./build/contracts/FlashloanExecutor");
+const Flashloan = require("./build/contracts/FlashloanDodo");
 const ERC20ops = require("./ERC20ops.js");
 const Web3 = require('web3');
 
@@ -56,15 +56,15 @@ class FlashOps {
         return txPromise;  
     }
 
-    async executeFlashloanAAVEv1 (_parsedJson){
+    async executeFlashloanDodo (_parsedJson){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
-                
+                console.log(`### Executing flashloan on DODO | ${_parsedJson.initialTokenAmount} => ${JSON.stringify(_parsedJson.route)}  ###`); 
                 let amountToBorrowOfFirstToken = Util.amountToBlockchain(_parsedJson.initialTokenAmount, _parsedJson.initialTokenDecimals);
 
                 //encode method 
-                let encodedMethod = this.contractInstance.methods.flashloanAAVEv1(amountToBorrowOfFirstToken, _parsedJson.addressPath).encodeABI(); 
+                let encodedMethod = this.contractInstance.methods.flashloanDodo(amountToBorrowOfFirstToken, _parsedJson.addressPath).encodeABI(); 
             
                 //declare raw tx to withdraw
                 let rawFlashloanTx = {
