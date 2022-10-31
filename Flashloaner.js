@@ -447,6 +447,8 @@ function getERC20(_symbol){
                 throw (error);
             }
         break;
+
+       
                
         // serialize last block in a log file inside database folder   
         case '6': 
@@ -646,7 +648,7 @@ function getERC20(_symbol){
                                     
                                     //parse response data
                                     if(response){
-                                        
+                                       
                                         //take new balance of DAI
                                         let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOAN_NEWINPUT_ADDRESS);
 
@@ -719,6 +721,18 @@ function getERC20(_symbol){
             console.log(receipt);            
         break;
         
+        case '12': //acess loggerBalance event
+            try { 
+                let flashNewInputOps = new FlashNewInputOps(GLOBAL, FLASHLOAN_NEWINPUT_ADDRESS);
+                let tx = await flashNewInputOps.iterateExp1();
+                console.log(tx.transactionHash);
+                //acessing LoggerBalance event
+                let loggerBalanceEventEmmited = GLOBAL.web3Instance.eth.abi.decodeParameters(flashNewInputOps.loggerBalanceEventABI, tx.logs[0].data);
+                console.log(JSON.stringify(loggerBalanceEventEmmited));
+            } catch (error) {
+                throw (error);
+            }
+        break;
         
 
         default:

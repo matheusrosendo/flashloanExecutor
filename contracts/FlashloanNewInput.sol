@@ -61,6 +61,16 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
         stableCoinsPool3[0xdAC17F958D2ee523a2206206994597C13D831ec7] = 2;   
     }
 
+    function iterate() public {
+        emit LoggerBalance(0x6B175474E89094C44Da98b954EedeAC495271d0F, 900, 1000);
+        testInputCall++;
+
+    }
+
+    function getCounter() public view returns(uint){
+        return testInputCall;
+    } 
+
     /**
      * Flashloan main function 
      */
@@ -78,7 +88,7 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
         address loanToken = RouteUtils.getInitialToken(_flashloanInputData);
         
         uint256 currentBalance = balanceOfToken(loanToken);
-        emit LoggerFlashloan(loanToken, currentBalance, _flashloanInputData.loanAmount);
+        //emit LoggerFlashloan(loanToken, currentBalance, _flashloanInputData.loanAmount);
 
         
         IDODO(_flashloanInputData.flashLoanPool).flashLoan(
@@ -98,43 +108,6 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
     }
 
 
-    /**
-     * Flashloan main function 
-     */
-    function flashloanDodoTestInput(FlashInputData memory _flashloanInputData) public onlyOwner checkInputData(_flashloanInputData) {
-        
-        bytes memory flashData = abi.encode(FlashInputData(
-            {
-                flashLoanPool: _flashloanInputData.flashLoanPool,
-                loanAmount: _flashloanInputData.loanAmount,
-                swaps: _flashloanInputData.swaps
-            }
-        ));
-
-        //take current balance of the first token of the list (0 is router, 1 is from, 2 is to)
-        address loanToken = RouteUtils.getInitialToken(_flashloanInputData);
-        
-        uint256 currentBalance = balanceOfToken(loanToken);
-        emit LoggerFlashloan(loanToken, currentBalance, _flashloanInputData.loanAmount);
-
-        
-       /*  IDODO(_flashloanInputData.flashLoanPool).flashLoan(
-            IDODO(_flashloanInputData.flashLoanPool)._BASE_TOKEN_() == loanToken
-                ? _flashloanInputData.loanAmount
-                : 0,
-            IDODO(_flashloanInputData.flashLoanPool)._BASE_TOKEN_() == loanToken
-                ? 0
-                : _flashloanInputData.loanAmount,
-            address(this),
-            flashData
-        ); */
-
-        //shows new old and new balances of token _asset
-        uint256 newBalance = balanceOfToken(loanToken);
-        emit LoggerBalance(loanToken, currentBalance, newBalance);
-
-        testInputCall++;
-    }
 
     /**
         This function is called after your contract has received the flash loaned amount
@@ -161,7 +134,7 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
         //get current balance of token borrowed
         uint256 currentBalance = balanceOfToken(loanToken);
         
-        emit LoggerExecuteOperation(loanToken, currentBalance, loanAmount);
+        //emit LoggerExecuteOperation(loanToken, currentBalance, loanAmount);
         require(loanAmount <= currentBalance, "Invalid balance, was the flashLoan successful?");
 
         uint amountIn = loanAmount;
@@ -171,6 +144,7 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
             address exchangeRouter = decodedInputData.swaps[i].routerAddress;
             address tokenIn = decodedInputData.swaps[i].tokenInAddress;
             address tokenOut = decodedInputData.swaps[i].tokenOutAddress;
+            uint24 fee = decodedInputData.swaps[i].fee;
             ProtocolType protocolType = protocolTypes[decodedInputData.swaps[i].protocolTypeIndex];
 
             //vefiry swap mode and calls swap function accordly
@@ -178,6 +152,8 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
                 lastAmount = singleSwapOnPool3CurveV1(amountIn, tokenIn, tokenOut, exchangeRouter);
             } else if (protocolType == ProtocolType.UNISWAP_V2){
                 lastAmount = singleSwapOnUniswapV2(amountIn, tokenIn, tokenOut, exchangeRouter);
+            } else if (protocolType == ProtocolType.UNISWAP_V3){
+                lastAmount = singleSwapOnUniswapV3(amountIn, tokenIn, tokenOut, exchangeRouter, fee);
             } 
             amountIn = lastAmount;
         }
@@ -208,7 +184,7 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
             IUniswapV2Router02 currentRouter = IUniswapV2Router02(_addressessArray[i]);
             uint currentAllowance = checkAllowance(path[0], _addressessArray[i]);
             if(currentAllowance < amountIn){
-                emit LoggerNewAllowance(amountIn - currentAllowance, path[0], _addressessArray[i]);
+                //emit LoggerNewAllowance(amountIn - currentAllowance, path[0], _addressessArray[i]);
                 IERC20(path[0]).safeIncreaseAllowance(_addressessArray[i], amountIn - currentAllowance);
             }            
             uint[] memory amounts = currentRouter.swapExactTokensForTokens(
@@ -266,9 +242,56 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
         //get new balances and emit event
         loggerSwapStruct.tokenInNewBalance = balanceOfToken(_tokenIn);
         loggerSwapStruct.tokenOutNewBalance = balanceOfToken(_tokenOut);        
-        emit LoggerSwapNew(loggerSwapStruct);
+        //emit LoggerSwapNew(loggerSwapStruct);
         
         return loggerSwapStruct.amountTokenOut;
+    }
+
+    /**
+     * Execute a single swap on Uniswap V3 type exchanges
+     */
+    function singleSwapOnUniswapV3(uint _amountTokenIn, address _tokenIn, address _tokenOut, address _exchangeRouter, uint24 _fee) 
+        internal
+        returns (uint256 amountOut)    {
+        LoggerSwapStruct memory loggerSwapStruct;
+        loggerSwapStruct.tokenInOldBalance = balanceOfToken(_tokenIn); 
+        
+        //make sure current balance is superior than the first token amount
+        require(loggerSwapStruct.tokenInOldBalance >= _amountTokenIn, "AmountInitialIn is bigger than first token contract balance");
+        loggerSwapStruct.protocolType = ProtocolType.UNISWAP_V3;
+        loggerSwapStruct.exchangeRouter = _exchangeRouter;
+        loggerSwapStruct.tokenOutOldBalance = balanceOfToken(_tokenOut); 
+        loggerSwapStruct.tokenIn = _tokenIn;
+        loggerSwapStruct.tokenOut = _tokenOut;
+        loggerSwapStruct.amountTokenIn = _amountTokenIn;
+
+        //check allowance
+        setAllowance(_amountTokenIn, _tokenIn, _exchangeRouter); 
+        
+        //declare router V3
+        ISwapRouter swapRouter = ISwapRouter(_exchangeRouter);
+
+        // perform swap
+        amountOut = swapRouter.exactInputSingle(
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: _tokenIn,
+                tokenOut: _tokenOut,
+                fee: _fee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: _amountTokenIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            })
+        );
+
+        //get amount out
+        loggerSwapStruct.amountTokenOut = amountOut;
+
+        //get new balances and emit event
+        loggerSwapStruct.tokenInNewBalance = balanceOfToken(_tokenIn);
+        loggerSwapStruct.tokenOutNewBalance = balanceOfToken(_tokenOut);        
+        emit LoggerSwapNew(loggerSwapStruct);
     }
 
      /**
@@ -301,7 +324,7 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
         loggerSwapStruct.tokenInNewBalance = balanceOfToken(_tokenIn);
         loggerSwapStruct.tokenOutNewBalance = balanceOfToken(_tokenOut);
         loggerSwapStruct.amountTokenOut = loggerSwapStruct.tokenOutNewBalance - loggerSwapStruct.tokenOutOldBalance;
-        emit LoggerSwapNew(loggerSwapStruct);
+        //emit LoggerSwapNew(loggerSwapStruct);
         
         return loggerSwapStruct.amountTokenOut;
     }
@@ -311,7 +334,7 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
     {
         uint currentAllowance = checkAllowance(_tokenIn, _exchangeRouter);
         if(currentAllowance < _amountTokenIn){
-            emit LoggerNewAllowance(_amountTokenIn - currentAllowance, _tokenIn, _exchangeRouter);
+            //emit LoggerNewAllowance(_amountTokenIn - currentAllowance, _tokenIn, _exchangeRouter);
             IERC20(_tokenIn).safeIncreaseAllowance(_exchangeRouter, _amountTokenIn - currentAllowance);
         }  
     }
