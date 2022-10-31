@@ -75,7 +75,7 @@ module.exports = {
 	    network_id: 1,
 	    skipDryRun: true,
 		blockchain: "ethereum",
-		networkCheckTimeout: 10000000,
+		networkCheckTimeout: 1000000000,
 		timeoutBlocks: 10000000
 	 },
 	  goerli: {

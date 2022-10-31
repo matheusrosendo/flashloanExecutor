@@ -43,13 +43,17 @@ contract DodoBase is IFlashloan {
         bytes calldata data
     ) internal virtual {}
 
-    modifier checkParams(FlashParams memory params) {
-        address loanToken = RouteUtils.getInitialToken(params.routes[0]);
-        bool loanEqBase = loanToken ==
-            IDODO(params.flashLoanPool)._BASE_TOKEN_();
-        bool loanEqQuote = loanToken ==
-            IDODO(params.flashLoanPool)._QUOTE_TOKEN_();
-        require(loanEqBase || loanEqQuote, "Wrong flashloan pool address");
+    /**
+     * Initial data verification, make sure at least one swap is there, loan token must be equal the last, and loan token must be Base or Quote on Dodo pool address
+     */
+    modifier checkInputData(FlashInputData memory _flashInputData) {
+        address loanToken = RouteUtils.getInitialToken(_flashInputData);
+        bool loanEqBase = (loanToken == IDODO(_flashInputData.flashLoanPool)._BASE_TOKEN_());
+        bool loanEqQuote = (loanToken == IDODO(_flashInputData.flashLoanPool)._QUOTE_TOKEN_());
+        require(loanEqBase || loanEqQuote, "Loan token not found on informed flashloan pool address");
+        require(_flashInputData.swaps.length > 1, "At least two swaps are necessary to execute flashloan");
+        address lastToken = RouteUtils.getLastSwapToken(_flashInputData);
+        require(loanToken == lastToken, "Out token on last swap must be equal loan token");
         _;
     }
 }

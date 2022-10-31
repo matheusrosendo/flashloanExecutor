@@ -5,6 +5,7 @@ const Web3 = require('web3');
 const assert = require('assert');
 const Flashloan = require("./build/contracts/FlashloanExecutor");
 const FlashloanDodo = require("./build/contracts/FlashloanDodo");
+const FlashloanNewInput = require("./build/contracts/FlashloanNewInput");
 const truffleConfig = require("./truffle-config.js");
 const Files = require("./Files.js");
 const Util = require("./Util.js");
@@ -12,6 +13,7 @@ const UniswapV3ops = require("./UniswapV3ops.js");
 const ERC20ops = require("./ERC20ops.js");
 const FlashOps = require("./FlashOps.js");
 const FlashDodoOps = require("./FlashDodoOps.js");
+const FlashNewInputOps = require("./FlashNewInputOps.js");
 const {blockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const { get } = require("http");
 const Spot = require('@binance/connector/src/spot')
@@ -34,6 +36,7 @@ let GLOBAL = {
 }
 let FLASHLOAN_ADDRESS;
 let FLASHLOAN_DODO_ADDRESS;
+let FLASHLOAN_NEWINPUT_ADDRESS;
 
 
 /**
@@ -103,6 +106,22 @@ async function isContractDodoOk(_network, _OwnerAddress){
         let Web3js = getWeb3Instance(_network);
         let flashloanDodoContract = new Web3js.eth.Contract(FlashloanDodo.abi, FlashloanDodo.networks[truffleConfig.networks[_network].network_id].address)
         let owner = await flashloanDodoContract.methods.owner().call(); 
+        if (owner == _OwnerAddress){
+            return true;
+        } else {
+            console.log("Error: contract found but owner is not the informed address, owner found = "+owner);
+            return false;
+        }        
+    } catch (error) {
+        throw new Error("Are you sure Flashloan Dodo Contract is deployed? Error: "+error);
+    }
+}
+
+async function isContractNewInputOk(_network, _OwnerAddress){
+    try {
+        let Web3js = getWeb3Instance(_network);
+        let flashloanNewInputContract = new Web3js.eth.Contract(FlashloanNewInput.abi, FlashloanNewInput.networks[truffleConfig.networks[_network].network_id].address)
+        let owner = await flashloanNewInputContract.methods.owner().call(); 
         if (owner == _OwnerAddress){
             return true;
         } else {
@@ -228,6 +247,11 @@ function getERC20(_symbol){
     } else {
         FLASHLOAN_DODO_ADDRESS = FlashloanDodo.networks[GLOBAL.networkId].address; 
     }
+    if(blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOAN_NEWINPUT_ADDRESS){
+        FLASHLOAN_NEWINPUT_ADDRESS = blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOAN_NEWINPUT_ADDRESS
+    } else {
+        FLASHLOAN_NEWINPUT_ADDRESS = FlashloanNewInput.networks[GLOBAL.networkId].address; 
+    }
      
     switch(mode[0]){
         case '1': //LOCAL DEV ONLY: exchange some ETH by WETH, then WETH by DAI, and DAI by USDC on UniswapV3
@@ -286,32 +310,59 @@ function getERC20(_symbol){
         break;
 
         case '2.1': //Fund Flashloan DODO smart contract with DAI and USDC
-        console.log("######### Mode 2.1 | FUND FLASHLOAN DODO CONTRACT #########");
-        try {               
-            let erc20ops = new ERC20ops(GLOBAL);
-            let balanceDAIowner = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
-             
-            if(balanceDAIowner > 1){
-                await erc20ops.transfer( getERC20("DAI"), FLASHLOAN_DODO_ADDRESS, Number(balanceDAIowner).toFixedDown(4));
-            } else{
-               console.error("Warning: no DAI on owner address");
+            console.log("######### Mode 2.1 | FUND FLASHLOAN DODO CONTRACT #########");
+            try {               
+                let erc20ops = new ERC20ops(GLOBAL);
+                let balanceDAIowner = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
+                
+                if(balanceDAIowner > 1){
+                    await erc20ops.transfer( getERC20("DAI"), FLASHLOAN_DODO_ADDRESS, Number(balanceDAIowner).toFixedDown(4));
+                } else{
+                console.error("Warning: no DAI on owner address");
+                }
+
+                let balanceUSDCowner = await erc20ops.getBalanceOfERC20(getERC20("USDC"), GLOBAL.ownerAddress);
+                if(balanceUSDCowner > 1){
+                    await erc20ops.transfer( getERC20("USDC"), FLASHLOAN_DODO_ADDRESS, Number(balanceUSDCowner).toFixedDown(4));
+                } else{
+                console.error("Warning: no USDC on owner address");
+                }
+
+                console.log("\n### contract balances: ###");
+                await showBalances(FLASHLOAN_DODO_ADDRESS); 
+
+            } catch (error) {
+                throw(error);
             }
+        break;
 
-            let balanceUSDCowner = await erc20ops.getBalanceOfERC20(getERC20("USDC"), GLOBAL.ownerAddress);
-            if(balanceUSDCowner > 1){
-                await erc20ops.transfer( getERC20("USDC"), FLASHLOAN_DODO_ADDRESS, Number(balanceUSDCowner).toFixedDown(4));
-            } else{
-               console.error("Warning: no USDC on owner address");
+        case '2.2': //Fund Flashloan new input smart contract with DAI and USDC
+            console.log("######### Mode 2.2 | FUND FLASHLOAN NEW INPUT CONTRACT #########");
+            try {               
+                let erc20ops = new ERC20ops(GLOBAL);
+                let balanceDAIowner = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
+                
+                if(balanceDAIowner > 1){
+                    await erc20ops.transfer( getERC20("DAI"), FLASHLOAN_NEWINPUT_ADDRESS, Number(balanceDAIowner).toFixedDown(4));
+                } else{
+                console.error("Warning: no DAI on owner address");
+                }
+
+                let balanceUSDCowner = await erc20ops.getBalanceOfERC20(getERC20("USDC"), GLOBAL.ownerAddress);
+                if(balanceUSDCowner > 1){
+                    await erc20ops.transfer( getERC20("USDC"), FLASHLOAN_NEWINPUT_ADDRESS, Number(balanceUSDCowner).toFixedDown(4));
+                } else{
+                console.error("Warning: no USDC on owner address");
+                }
+
+                console.log("\n### contract balances: ###");
+                await showBalances(FLASHLOAN_NEWINPUT_ADDRESS); 
+
+            } catch (error) {
+                throw(error);
             }
-
-            console.log("\n### contract balances: ###");
-            await showBalances(FLASHLOAN_DODO_ADDRESS); 
-
-        } catch (error) {
-            throw(error);
-        }
-        
-    break;
+            
+        break;
 
         // check flashloan contract balances
         // Ex: node .\Flashloaner.js 3 NETWORKNAME
@@ -333,6 +384,19 @@ function getERC20(_symbol){
                 if(isContractDodoOk(network, GLOBAL.ownerAddress)){
                     console.log("### balances of contract "+FLASHLOAN_DODO_ADDRESS+" ###");
                     await showBalances(FLASHLOAN_DODO_ADDRESS);
+                }
+            } catch (error) {
+                throw(error);
+            }
+
+        break;
+
+        case '3.2': 
+        console.log("######### Mode 3.2 | FLASHLOAN NEW INPUT CONTRACT BALANCES #########");
+            try {               
+                if(isContractDodoOk(network, GLOBAL.ownerAddress)){
+                    console.log("### balances of contract "+FLASHLOAN_NEWINPUT_ADDRESS+" ###");
+                    await showBalances(FLASHLOAN_NEWINPUT_ADDRESS);
                 }
             } catch (error) {
                 throw(error);
@@ -368,6 +432,15 @@ function getERC20(_symbol){
         case '5.1': 
             try { 
                 let flashDodoOps = new FlashDodoOps(GLOBAL, FLASHLOAN_DODO_ADDRESS);
+                let tx = await flashDodoOps.withdrawToken(getERC20("DAI"));
+                console.log(tx.transactionHash);
+            } catch (error) {
+                throw (error);
+            }
+        break;
+        case '5.2': 
+            try { 
+                let flashDodoOps = new FlashDodoOps(GLOBAL, FLASHLOAN_NEWINPUT_ADDRESS);
                 let tx = await flashDodoOps.withdrawToken(getERC20("DAI"));
                 console.log(tx.transactionHash);
             } catch (error) {
@@ -535,6 +608,74 @@ function getERC20(_symbol){
         
         break;
 
+        case '8.2': 
+            console.log("######### Mode 8.2 | NEW INPUT DODO FLASHLOAN #########");
+            
+            try {
+                if(mode.length < 3){
+                    throw new Error("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
+                }
+                if(isContractOk(network, GLOBAL.ownerAddress)){
+                    //adjust to relative or absolute path
+                    let directoryPath = mode[2];
+                    if (directoryPath.search(":") == -1){
+                        directoryPath = path.join(__dirname, mode[2]);
+                    } 
+
+                    //get flashloan files from directory informed
+                    let resolvedFiles = Files.listFiles(directoryPath);
+                    if(resolvedFiles.length == 0){
+                        console.log("##### None new file found in "+directoryPath+" #####")
+                    } else {
+                        //execute flashloan for each file
+                        for(let file of resolvedFiles){                 
+                            if(file !== undefined){
+                                try {
+                                    //parse flashloan file
+                                    let completeFileName = path.join(directoryPath, file);
+                                    let parsedJson = Files.parseJSONtoOjectList(completeFileName);
+                                    
+                                    //take old Balance of DAI
+                                    let erc20ops = new ERC20ops(GLOBAL);
+                                    let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOAN_NEWINPUT_ADDRESS);
+
+                                    //execute flashloan
+                                    let flashNewInputOps = new FlashNewInputOps(GLOBAL);
+                                    
+                                    let response = await flashNewInputOps.executeFlashloanDodo(parsedJson);
+                                    
+                                    //parse response data
+                                    if(response){
+                                        
+                                        //take new balance of DAI
+                                        let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOAN_NEWINPUT_ADDRESS);
+
+                                        //serialize log file with the execution data
+                                        let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
+                                        console.log("##### Flashloan Executed! output file:"+serializedFile.location+" results: #####")
+                                        console.log(serializedFile.content.result);
+                                        
+                                        //remove original input file
+                                        if(serializedFile){
+                                            console.log("!!!uncoment to delete original file")
+                                            //Files.deleteFile(completeFileName);                        
+                                        }
+                                    } else {
+                                        throw("Error: undefined response returned from executeFlashloan function!");
+                                    }
+                                } catch (error) {
+                                    throw (error);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                throw (error);
+            }
+        
+        break;
+
         
         case '9': // getPool address on UniswapV3
             try { 
@@ -570,14 +711,14 @@ function getERC20(_symbol){
             console.log("RPC Provider URL: "+blockchainConfig.network[GLOBAL.network].RPC_PROVIDER_URL);
             let chainId = await GLOBAL.web3Instance.eth.getChainId()
             console.log("chainId = "+chainId);
-        break;
-        
+        break;        
         
         //testes transaction receipt
-        case '12':
-            let receipt = GLOBAL.web3Instance.eth.getTransactionReceipt("0x96944bfb6718105f6a7a89d5092ba6417594b2f8bb4e33f14d952a881f537679");
+        case '11':
+            let receipt = await GLOBAL.web3Instance.eth.getTransactionReceipt("0xfb1ba919cdaf5e014cfcaa7c7dfa2687d5e19173fe6b88ee1926721fb21834ae");
             console.log(receipt);            
         break;
+        
         
 
         default:
