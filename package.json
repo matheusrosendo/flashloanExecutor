@@ -1,132 +1,85 @@
 {
-  
-
-"name": "flashloaner",
-  
-
-"description": "A flashloan package for execute flashloan from AAVE using Uniswap, Sushiswap, Curve, etc",
-  
-
-"version": "1.0.0",
-  
-
-"license": "AGPLv3",
-  
-
-"author": "Matheus Rosendo",
-  
-
-"repository": "https://github.com/matheusrosendo/flashloanExecutor",
-  
-
-"dependencies": {
-  
-
-  
-
-"@binance/connector": "^2.0.0-rc.3",
-  
-
-  
-
-"@curvefi/api": "^2.14.0",
-  
-
-  
-
-"@openzeppelin/contracts": "^4.0.0",
-  
-
-  
-
-"@truffle/hdwallet-provider": "^1.0.36",
-  
-
-  
-
-"@uniswap/v2-periphery": "^1.1.0-beta.0",
-  
-
-  
-
-"@uniswap/v3-core": "^1.0.1",
-  
-
-  
-
-"@uniswap/v3-periphery": "^1.4.2",
-  
-
-  
-
-"bigdecimal": "^0.6.1",
-  
-
-  
-
-"chai": "^4.3.6",
-  
-
-  
-
-"chai-as-promised": "^7.1.1",
-  
-
-  
-
-"chai-bn": "^0.3.1",
-  
-
-  
-
-"csv": "^6.2.0",
-  
-
-  
-
-"csv-parser": "^3.0.0",
-  
-
-  
-
-"dotenv": "^8.2.0",
-  
-
-  
-
-"truffle": "^5.1.32"
-  
-
-},
-  
-
-"scripts": {
-  
-
-  
-
-"ethereum_fork_past": "ganache-cli  --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10  -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
-  
-
-  
-
-"ethereum_fork_fixed": "ganache-cli  -b 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8001 --db database/ethereum-fork-fixed -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
-  
-
-  
-
-"ethereum_fork_update": "ganache-cli --fork https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8002 --db database/ethereum-fork-update -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
-  
-
-  
-
-"bsc_fork_start": "ganache-cli  -b 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8011 --db database/bsc-fork1 -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
-  
-
-  
-
-"bsc_fork_update": "ganache-cli  --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8012 --db database/bsc-fork-update -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" "
-  
-
-}
+  
+"name": "flashloaner",
+  
+"description": "A flashloan package for execute flashloan from AAVE using Uniswap, Sushiswap, Curve, etc",
+  
+"version": "1.0.0",
+  
+"license": "AGPLv3",
+  
+"author": "Matheus Rosendo",
+  
+"repository": "https://github.com/matheusrosendo/flashloanExecutor",
+  
+"dependencies": {
+  
+  
+"@aave/protocol-v2": "^1.0.1",
+  
+  
+"@binance/connector": "^2.0.0-rc.3",
+  
+  
+"@curvefi/api": "^2.14.0",
+  
+  
+"@openzeppelin/contracts": "^4.0.0",
+  
+  
+"@truffle/hdwallet-provider": "^1.0.36",
+  
+  
+"@uniswap/v2-periphery": "^1.1.0-beta.0",
+  
+  
+"@uniswap/v3-core": "^1.0.1",
+  
+  
+"@uniswap/v3-periphery": "^1.4.2",
+  
+  
+"bigdecimal": "^0.6.1",
+  
+  
+"chai": "^4.3.6",
+  
+  
+"chai-as-promised": "^7.1.1",
+  
+  
+"chai-bn": "^0.3.1",
+  
+  
+"csv": "^6.2.0",
+  
+  
+"csv-parser": "^3.0.0",
+  
+  
+"dotenv": "^8.2.0",
+  
+  
+"truffle": "^5.1.32"
+  
+},
+  
+"scripts": {
+  
+  
+"ethereum_fork_past": "ganache-cli  --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10  -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
+  
+  
+"ethereum_fork_fixed": "ganache-cli  -b 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8001 --db database/ethereum-fork-fixed -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
+  
+  
+"ethereum_fork_update": "ganache-cli --fork https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8002 --db database/ethereum-fork-update -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
+  
+  
+"bsc_fork_start": "ganache-cli  -b 1 --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8011 --db database/bsc-fork1 -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" ",
+  
+  
+"bsc_fork_update": "ganache-cli  --fork https://mainnet.infura.io/v3/2b87a1cd9a75478288b5a54b40c62cdc --unlock 0x28C6c06298d514Db089934071355E5743bf21d60 -i 10 -p 8012 --db database/bsc-fork-update -m \"please loud skin soccer slender invest thank brick blue shallow day ivory\" "
+  
+}
 }

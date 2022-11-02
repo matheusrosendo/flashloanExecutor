@@ -8,9 +8,10 @@ import {DodoBase, IFlashloan, IDODO, RouteUtils} from "./dodo/DodoBase.sol";
 import {ISwapRouter} from "./uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {IUniswapV3Pool} from "./uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {Withdrawable, SafeERC20, IERC20} from "./utils/Withdrawable.sol";   
+import {FlashLoanReceiverBase, ILendingPoolAddressesProvider, ILendingPool} from "./aave/protocol-v2/contracts/flashloan/base/FlashLoanReceiverBase.sol";
 
 
-contract FlashloanNewInput is DodoBase, Withdrawable {
+contract Flashloaner is DodoBase, Withdrawable, FlashLoanReceiverBase {
     uint testInputCall;
     enum ProtocolType{ UNISWAP_V2, CURVE_V1, UNISWAP_V3}
     mapping(uint8 => ProtocolType) protocolTypes;
@@ -45,8 +46,8 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
 
     event LoggerSwapNew( LoggerSwapStruct loggerSwapStruct);
     
-    
-    constructor()  {
+    //address passed is Aave Pool Provider V2 
+    constructor() FlashLoanReceiverBase(ILendingPoolAddressesProvider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5)) {
         testInputCall = 0;
         //set protocol types
         protocolTypes[1] = ProtocolType.CURVE_V1;
@@ -108,7 +109,7 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
 
 
     /**
-        This function is called after your contract has received the flash loaned amount
+        Callback function from DODO flashloan. This function is called after your contract has received the flash loaned amount
      */
     function _flashLoanCallBack(
         address ,//first parameter is this contract  
@@ -160,6 +161,96 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
         IERC20(loanToken).transfer(decodedInputData.flashLoanPool, loanAmount);
     }
 
+    /**
+     * AAVE Flashloan main function
+     */
+    function flashloanAave(FlashInputData memory _flashloanInputData) public {
+        bytes memory flashData = abi.encode(FlashInputData(
+            {
+                flashLoanPool: _flashloanInputData.flashLoanPool,
+                loanAmount: _flashloanInputData.loanAmount,
+                swaps: _flashloanInputData.swaps
+            }
+        ));
+        
+        address receiverAddress = address(this);
+
+        address[] memory assets = new address[](1);
+        assets[0] = RouteUtils.getInitialToken(_flashloanInputData);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = _flashloanInputData.loanAmount;
+
+        // 0 = no debt, 1 = stable, 2 = variable
+        uint256[] memory modes = new uint256[](1);
+        modes[0] = 0;
+
+        address onBehalfOf = address(this);
+        uint16 referralCode = 0;
+
+        LENDING_POOL.flashLoan(
+            receiverAddress,
+            assets,
+            amounts,
+            modes,
+            onBehalfOf,
+            flashData,
+            referralCode
+        );
+    }
+
+    /**
+        This function is called after your contract has received the flash loaned amount
+     */
+     function executeOperation(
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata premiums,
+        address initiator,
+        bytes calldata data
+    ) external override returns (bool) {
+
+        //unpack input data
+        FlashInputData memory decodedInputData = abi.decode(
+            data,
+            (FlashInputData)
+        );
+        
+        //make sure borowed token is the first one of the route
+        require(assets[0] == RouteUtils.getInitialToken(decodedInputData), "Borrowed token is diferent from the initial token!");
+
+        //get amount of the first token borrewed, since aave2 permits more than one token to be borrowed at once
+        uint256 currentBalance = balanceOfToken(assets[0]);
+        require(amounts[0] <= currentBalance, "Invalid balance, was the flashLoan successful?");
+
+        uint amountIn = amounts[0];
+        { // limit variable scope to avoid sStack too deep errors    
+             uint lastAmount = 0;
+                {  // limit variable scope to avoid sStack too deep errors 
+                    for(uint i = 0; i < decodedInputData.swaps.length; i++){
+                        
+                        ProtocolType protocolType = protocolTypes[decodedInputData.swaps[i].protocolTypeIndex];
+
+                        //vefiry swap mode and calls swap function accordly
+                        if(protocolType == ProtocolType.CURVE_V1){
+                            lastAmount = singleSwapOnPool3CurveV1(amountIn, decodedInputData.swaps[i].tokenInAddress, decodedInputData.swaps[i].tokenOutAddress, decodedInputData.swaps[i].routerAddress);
+                        } else if (protocolType == ProtocolType.UNISWAP_V2){
+                            lastAmount = singleSwapOnUniswapV2(amountIn, decodedInputData.swaps[i].tokenInAddress, decodedInputData.swaps[i].tokenOutAddress, decodedInputData.swaps[i].routerAddress);
+                        } else if (protocolType == ProtocolType.UNISWAP_V3){
+                            lastAmount = singleSwapOnUniswapV3(amountIn, decodedInputData.swaps[i].tokenInAddress, decodedInputData.swaps[i].tokenOutAddress, decodedInputData.swaps[i].routerAddress, decodedInputData.swaps[i].fee);
+                        } 
+                        amountIn = lastAmount;
+                    }
+                }
+        }
+
+
+        // Approve the LendingPool contract allowance to *pull* the owed amount
+        for (uint256 i = 0; i < assets.length; i++) {
+            setAllowance(amounts[i] + premiums[i], assets[i], address(LENDING_POOL));
+        }
+        return true;
+    }
 
     /**
      * Function to be called by executeOperation (callback flashloan function)
