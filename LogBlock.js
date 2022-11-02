@@ -65,7 +65,7 @@ async function showInitInfo(){
 
 (async () => {
     console.time('Total Execution Time');    
-    console.log("\n######################### START LOG BLOCK EXECUTION #########################");
+    console.log("\n######################### START LOGBLOCK EXECUTION #########################");
 
     //read and verify arguments
     let mode = process.argv.filter((item, index) =>{return index >= 1})
@@ -107,7 +107,7 @@ async function showInitInfo(){
     }         
     
     console.timeEnd('Total Execution Time');
-    console.log("######################### END FLASHLOAN EXECUTION #########################\n");
+    console.log("######################### END LOGBLOCK EXECUTION #########################\n");
     process.exit();
     
 })();

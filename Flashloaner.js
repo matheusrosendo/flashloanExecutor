@@ -3,14 +3,12 @@ const fs = require("fs");
 const path = require("path");
 const Web3 = require('web3');
 const assert = require('assert');
-const FlashloanNewInput = require("./build/contracts/FlashloanNewInput");
 const Flashloaner = require("./build/contracts/Flashloaner");
 const truffleConfig = require("./truffle-config.js");
 const Files = require("./Files.js");
 const Util = require("./Util.js");
 const UniswapV3ops = require("./UniswapV3ops.js");
 const ERC20ops = require("./ERC20ops.js");
-const FlashNewInputOps = require("./FlashNewInputOps.js");
 const FlashloanerOps = require("./FlashloanerOps.js");
 const {blockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const { get } = require("http");
@@ -22,7 +20,6 @@ Number.prototype.toFixedDown = function(digits) {
     return m ? parseFloat(m[1]) : this.valueOf();
 };
 
-
 //global variables
 let GLOBAL = {
     web3Instance: null,
@@ -32,8 +29,6 @@ let GLOBAL = {
     tokenList: null,
     networkId: null
 }
-
-let FLASHLOAN_NEWINPUT_ADDRESS;
 let FLASHLOANER_ADDRESS;
 
 
@@ -75,14 +70,17 @@ async function getCurrentGasPriceInGwei(){
     return gasPriceInGwei;
 }
 
-
-
-
+/**
+ * Verifies if flashloan contract is properly deployed
+ * @param {*} _network 
+ * @param {*} _OwnerAddress 
+ * @returns 
+ */
 async function isContractOk(_network, _OwnerAddress){
     try {
         let Web3js = getWeb3Instance(_network);
-        let flashloanNewInputContract = new Web3js.eth.Contract(FlashloanNewInput.abi, FlashloanNewInput.networks[truffleConfig.networks[_network].network_id].address)
-        let owner = await flashloanNewInputContract.methods.owner().call(); 
+        let flashloanerContract = new Web3js.eth.Contract(Flashloaner.abi, Flashloaner.networks[truffleConfig.networks[_network].network_id].address)
+        let owner = await flashloanerContract.methods.owner().call(); 
         if (owner == _OwnerAddress){
             return true;
         } else {
@@ -158,7 +156,6 @@ async function showInitInfo(){
     console.log(`### RPC provider: ${blockchainConfig.network[GLOBAL.network].RPC_PROVIDER_URL} ###`); 
     console.log(`### blockchain: ${GLOBAL.blockchain} ###`); 
     console.log(`### network: ${GLOBAL.network} | block: ${currentBlock} | last gas price: ${gasPriceInGwei} gwei ###\n`); 
-    
 }
 
 /**
@@ -198,13 +195,6 @@ function getERC20(_symbol){
     
     // if flashloan address was set in .env, set FLASHLOAN_ADFRESS global variable with it, 
     // or use local deployed contract address otherwise 
-    
-    
-    if(blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOAN_NEWINPUT_ADDRESS){
-        FLASHLOAN_NEWINPUT_ADDRESS = blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOAN_NEWINPUT_ADDRESS
-    } else {
-        FLASHLOAN_NEWINPUT_ADDRESS = FlashloanNewInput.networks[GLOBAL.networkId].address; 
-    }
     if(blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOANER_ADDRESS){
         FLASHLOANER_ADDRESS = blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOANER_ADDRESS
     } else {
@@ -239,38 +229,8 @@ function getERC20(_symbol){
             
         break;
 
-       
-
-        case '2.2': //Fund Flashloan new input smart contract with DAI and USDC
-            console.log("######### Mode 2.2 | FUND FLASHLOAN NEW INPUT CONTRACT #########");
-            try {               
-                let erc20ops = new ERC20ops(GLOBAL);
-                let balanceDAIowner = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
-                
-                if(balanceDAIowner > 1){
-                    await erc20ops.transfer( getERC20("DAI"), FLASHLOAN_NEWINPUT_ADDRESS, Number(balanceDAIowner).toFixedDown(4));
-                } else{
-                console.error("Warning: no DAI on owner address");
-                }
-
-                let balanceUSDCowner = await erc20ops.getBalanceOfERC20(getERC20("USDC"), GLOBAL.ownerAddress);
-                if(balanceUSDCowner > 1){
-                    await erc20ops.transfer( getERC20("USDC"), FLASHLOAN_NEWINPUT_ADDRESS, Number(balanceUSDCowner).toFixedDown(4));
-                } else{
-                console.error("Warning: no USDC on owner address");
-                }
-
-                console.log("\n### contract balances: ###");
-                await showBalances(FLASHLOAN_NEWINPUT_ADDRESS); 
-
-            } catch (error) {
-                throw(error);
-            }
-            
-        break;
-
-        case '2.3': //Fund Flashloan new input smart contract with DAI and USDC
-            console.log("######### Mode 2.3 | FUND FLASHLOANER CONTRACT #########");
+        case '2': //Fund Flashloan new input smart contract with DAI and USDC
+            console.log("######### Mode 2 | FUND FLASHLOANER CONTRACT #########");
             try {               
                 let erc20ops = new ERC20ops(GLOBAL);
                 let balanceDAIowner = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
@@ -299,12 +259,12 @@ function getERC20(_symbol){
 
        
 
-        case '3.2': 
-        console.log("######### Mode 3.2 | FLASHLOAN NEW INPUT CONTRACT BALANCES #########");
+        case '3': 
+        console.log("######### Mode 3 | FLASHLOANER CONTRACT BALANCES #########");
             try {               
                 if(isContractOk(network, GLOBAL.ownerAddress)){
-                    console.log("### balances of contract "+FLASHLOAN_NEWINPUT_ADDRESS+" ###");
-                    await showBalances(FLASHLOAN_NEWINPUT_ADDRESS);
+                    console.log("### balances of contract "+FLASHLOANER_ADDRESS+" ###");
+                    await showBalances(FLASHLOANER_ADDRESS);
                 }
             } catch (error) {
                 throw(error);
@@ -325,254 +285,117 @@ function getERC20(_symbol){
         break;
         
        
-         //withdraw DAI to owner
-        // Ex: node .\Flashloaner.js 5 networkName
-      
-        case '5.2': 
-            try { 
-                let flashDodoOps = new FlashDodoOps(GLOBAL, FLASHLOAN_NEWINPUT_ADDRESS);
-                let tx = await flashDodoOps.withdrawToken(getERC20("DAI"));
-                console.log(tx.transactionHash);
+
+        // execute main flashloan function
+        // ex: node .\Flashloaner.js 5 EthereumForkSpecBlock Networks\EthereumForkSpecBlock\FlashloanInput
+        case '5': 
+            console.log("######### Mode 5 | FLASHLOANER MAIN #########");
+            
+            try {
+                if(mode.length < 3){
+                    throw new Error("Invalid number of parameters! Ex: node .\\Flashloaner.js 5 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
+                }
+                if(isContractOk(network, GLOBAL.ownerAddress)){
+                    //adjust to relative or absolute path
+                    let directoryPath = mode[2];
+                    if (directoryPath.search(":") == -1){
+                        directoryPath = path.join(__dirname, mode[2]);
+                    } 
+
+                    //get flashloan files from directory informed
+                    let resolvedFiles = Files.listFiles(directoryPath);
+                    if(resolvedFiles.length == 0){
+                        console.log("##### None new file found in "+directoryPath+" #####")
+                    } else {
+                        //execute flashloan for each file
+                        for(let file of resolvedFiles){                 
+                            if(file !== undefined){
+                                try {
+                                    //parse flashloan file
+                                    let completeFileName = path.join(directoryPath, file);
+                                    let parsedJson = Files.parseJSONtoOjectList(completeFileName);
+                                    
+                                    //take old Balance of DAI
+                                    let erc20ops = new ERC20ops(GLOBAL);
+                                    let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
+
+                                    //execute flashloan
+                                    let flashloanerOps = new FlashloanerOps(GLOBAL);
+                                    
+                                    let response = await flashloanerOps.executeFlashloan(parsedJson);
+                                    
+                                    //parse response data
+                                    if(response){
+                                       
+                                        //take new balance of DAI
+                                        let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
+
+                                        //serialize log file with the execution data
+                                        let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
+                                        console.log("##### Flashloan Executed! output file:"+serializedFile.location+" results: #####")
+                                        console.log(serializedFile.content.result);
+                                        
+                                        //remove original input file
+                                        if(serializedFile){
+                                            console.log("!!!uncoment to delete original file")
+                                            //Files.deleteFile(completeFileName);                        
+                                        }
+                                    } else {
+                                        throw("Error: undefined response returned from executeFlashloan function!");
+                                    }
+                                } catch (error) {
+                                    throw (error);
+                                }
+                            }
+                        }
+                    }
+                }
             } catch (error) {
                 throw (error);
             }
+        
         break;
-
        
-               
-        // serialize last block in a log file inside database folder   
+        
+        //withdraw DAI to owner
+        // Ex: node .\Flashloaner.js 5 networkName
         case '6': 
-            try {
-                console.log("######### Mode 6 | LOG BLOCK INFO #########");
-                let logPath = path.join(__dirname, process.env.NETWORKS_FOLDER, network, "database", Util.formatDateTimeForFilename(new Date())+".log");
-                let logContent = {};
-                logContent.network = network;
-                logContent.datetime = Util.formatDateTime(new Date());
-                //the block just forked is one behind
-                let currentBlock = getCurrentBlock(GLOBAL.network);
-                logContent.block = currentBlock-1;
-                logContent.host = truffleConfig.networks[network].host;
-                logContent.port = truffleConfig.networks[network].port;
-                if(!Files.fileExists(logPath)){
-                    await Files.serializeObjectListToLogFile(logPath, logContent);
-                }   
-            } catch (error) {
-                throw (error);
-            }         
-        break;
-               
-        
-        
-
-        
-
-        case '8.2': 
-            console.log("######### Mode 8.2 | NEW INPUT DODO FLASHLOAN #########");
-            
-            try {
-                if(mode.length < 3){
-                    throw new Error("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
-                }
-                if(isContractOk(network, GLOBAL.ownerAddress)){
-                    //adjust to relative or absolute path
-                    let directoryPath = mode[2];
-                    if (directoryPath.search(":") == -1){
-                        directoryPath = path.join(__dirname, mode[2]);
-                    } 
-
-                    //get flashloan files from directory informed
-                    let resolvedFiles = Files.listFiles(directoryPath);
-                    if(resolvedFiles.length == 0){
-                        console.log("##### None new file found in "+directoryPath+" #####")
-                    } else {
-                        //execute flashloan for each file
-                        for(let file of resolvedFiles){                 
-                            if(file !== undefined){
-                                try {
-                                    //parse flashloan file
-                                    let completeFileName = path.join(directoryPath, file);
-                                    let parsedJson = Files.parseJSONtoOjectList(completeFileName);
-                                    
-                                    //take old Balance of DAI
-                                    let erc20ops = new ERC20ops(GLOBAL);
-                                    let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOAN_NEWINPUT_ADDRESS);
-
-                                    //execute flashloan
-                                    let flashNewInputOps = new FlashNewInputOps(GLOBAL);
-                                    
-                                    let response = await flashNewInputOps.executeFlashloanDodo(parsedJson);
-                                    
-                                    //parse response data
-                                    if(response){
-                                       
-                                        //take new balance of DAI
-                                        let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOAN_NEWINPUT_ADDRESS);
-
-                                        //serialize log file with the execution data
-                                        let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
-                                        console.log("##### Flashloan Executed! output file:"+serializedFile.location+" results: #####")
-                                        console.log(serializedFile.content.result);
-                                        
-                                        //remove original input file
-                                        if(serializedFile){
-                                            console.log("!!!uncoment to delete original file")
-                                            //Files.deleteFile(completeFileName);                        
-                                        }
-                                    } else {
-                                        throw("Error: undefined response returned from executeFlashloan function!");
-                                    }
-                                } catch (error) {
-                                    throw (error);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                throw (error);
-            }
-        
-        break;
-
-        case '8.3': 
-            console.log("######### Mode 8.3 | FLASHLOANER: DODO #########");
-            
-            try {
-                if(mode.length < 3){
-                    throw new Error("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
-                }
-                if(isContractOk(network, GLOBAL.ownerAddress)){
-                    //adjust to relative or absolute path
-                    let directoryPath = mode[2];
-                    if (directoryPath.search(":") == -1){
-                        directoryPath = path.join(__dirname, mode[2]);
-                    } 
-
-                    //get flashloan files from directory informed
-                    let resolvedFiles = Files.listFiles(directoryPath);
-                    if(resolvedFiles.length == 0){
-                        console.log("##### None new file found in "+directoryPath+" #####")
-                    } else {
-                        //execute flashloan for each file
-                        for(let file of resolvedFiles){                 
-                            if(file !== undefined){
-                                try {
-                                    //parse flashloan file
-                                    let completeFileName = path.join(directoryPath, file);
-                                    let parsedJson = Files.parseJSONtoOjectList(completeFileName);
-                                    
-                                    //take old Balance of DAI
-                                    let erc20ops = new ERC20ops(GLOBAL);
-                                    let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
-
-                                    //execute flashloan
-                                    let flashloanerOps = new FlashloanerOps(GLOBAL);
-                                    
-                                    let response = await flashloanerOps.executeFlashloanDodo(parsedJson);
-                                    
-                                    //parse response data
-                                    if(response){
-                                       
-                                        //take new balance of DAI
-                                        let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
-
-                                        //serialize log file with the execution data
-                                        let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
-                                        console.log("##### Flashloan Executed! output file:"+serializedFile.location+" results: #####")
-                                        console.log(serializedFile.content.result);
-                                        
-                                        //remove original input file
-                                        if(serializedFile){
-                                            console.log("!!!uncoment to delete original file")
-                                            //Files.deleteFile(completeFileName);                        
-                                        }
-                                    } else {
-                                        throw("Error: undefined response returned from executeFlashloan function!");
-                                    }
-                                } catch (error) {
-                                    throw (error);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                throw (error);
-            }
-        
-        break;
-
-        case '8.4': 
-            console.log("######### Mode 8.4 | FLASHLOANER: AAVE #########");
-            
-            try {
-                if(mode.length < 3){
-                    throw new Error("Invalid number of parameters! Ex: node .\\Flashloaner.js 8 EthereumForkUpdate Networks\\EthereumForkUpdate\\FlashloanInput");
-                }
-                if(isContractOk(network, GLOBAL.ownerAddress)){
-                    //adjust to relative or absolute path
-                    let directoryPath = mode[2];
-                    if (directoryPath.search(":") == -1){
-                        directoryPath = path.join(__dirname, mode[2]);
-                    } 
-
-                    //get flashloan files from directory informed
-                    let resolvedFiles = Files.listFiles(directoryPath);
-                    if(resolvedFiles.length == 0){
-                        console.log("##### None new file found in "+directoryPath+" #####")
-                    } else {
-                        //execute flashloan for each file
-                        for(let file of resolvedFiles){                 
-                            if(file !== undefined){
-                                try {
-                                    //parse flashloan file
-                                    let completeFileName = path.join(directoryPath, file);
-                                    let parsedJson = Files.parseJSONtoOjectList(completeFileName);
-                                    
-                                    //take old Balance of DAI
-                                    let erc20ops = new ERC20ops(GLOBAL);
-                                    let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
-
-                                    //execute flashloan
-                                    let flashloanerOps = new FlashloanerOps(GLOBAL);
-                                    
-                                    let response = await flashloanerOps.executeFlashloanAave(parsedJson);
-                                    
-                                    //parse response data
-                                    if(response){
-                                       
-                                        //take new balance of DAI
-                                        let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
-
-                                        //serialize log file with the execution data
-                                        let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
-                                        console.log("##### Flashloan Executed! output file:"+serializedFile.location+" results: #####")
-                                        console.log(serializedFile.content.result);
-                                        
-                                        //remove original input file
-                                        if(serializedFile){
-                                            console.log("!!!uncoment to delete original file")
-                                            //Files.deleteFile(completeFileName);                        
-                                        }
-                                    } else {
-                                        throw("Error: undefined response returned from executeFlashloan function!");
-                                    }
-                                } catch (error) {
-                                    throw (error);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                throw (error);
-            }
-        
-        break;
-
-        
-        case '9': // getPool address on UniswapV3
             try { 
+                console.log("######### Mode 6 | WITHDRAW FROM CONTRACT #########");
+                let erc20ops = new ERC20ops(GLOBAL);
+                let currentContractBalanceDai = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
+                if(currentContractBalanceDai == 0){
+                    console.log("Thereis no DAI in the flashloan contract!")
+                } else {
+                    let flashloanerOps = new FlashloanerOps(GLOBAL, FLASHLOANER_ADDRESS);
+                    let tx = await flashloanerOps.withdrawToken(getERC20("DAI"));
+                    console.log(tx.transactionHash);
+                }                
+                console.log("\n### CONTRACT balances: ###");
+                await showBalances(FLASHLOANER_ADDRESS); 
+
+                console.log("\n### OWNER balances: ###");
+                await showBalances(GLOBAL.ownerAddress); 
+            } catch (error) {
+                throw (error);
+            }
+        break;
+        
+        //show main address
+        case '10': 
+            console.log("######### Mode 10 | SHOW MAIN ADDRESSES #########");
+            let ownerFlashloan = await getOwner(network, Flashloaner);
+            console.log("GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
+            console.log("flashloan Owner Address: "+ownerFlashloan);
+            console.log("DAItokenAddress: "+getERC20("DAI").address);
+            console.log("RPC Provider URL: "+blockchainConfig.network[GLOBAL.network].RPC_PROVIDER_URL);
+            let chainId = await GLOBAL.web3Instance.eth.getChainId()
+            console.log("chainId = "+chainId);
+        break;        
+        
+        case '11': // get some pool addresses on UniswapV3
+            try { 
+                console.log("######### Mode 11 | SHOW SOME UNISWAPV3 POOL ADDRESS #########");
                let uniOps = new UniswapV3ops(GLOBAL);
                await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 10000);
                await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 3000);               
@@ -592,37 +415,6 @@ function getERC20(_symbol){
                 throw (error);
             }
         break
-        
-        //show main address
-        case '10': 
-            console.log("######### Mode 10 | SHOW MAIN ADDRESSES #########");
-            let ownerFlashloan = await getOwner(network, Flashloan);
-            console.log("GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
-            console.log("flashloan Owner Address: "+ownerFlashloan);
-            console.log("DAItokenAddress: "+getERC20("DAI").address);
-            console.log("RPC Provider URL: "+blockchainConfig.network[GLOBAL.network].RPC_PROVIDER_URL);
-            let chainId = await GLOBAL.web3Instance.eth.getChainId()
-            console.log("chainId = "+chainId);
-        break;        
-        
-        //testes transaction receipt
-        case '11':
-            let receipt = await GLOBAL.web3Instance.eth.getTransactionReceipt("0xfb1ba919cdaf5e014cfcaa7c7dfa2687d5e19173fe6b88ee1926721fb21834ae");
-            console.log(receipt);            
-        break;
-        
-        case '12': //acess loggerBalance event
-            try { 
-                let flashNewInputOps = new FlashNewInputOps(GLOBAL, FLASHLOAN_NEWINPUT_ADDRESS);
-                let tx = await flashNewInputOps.iterateExp1();
-                console.log(tx.transactionHash);
-                //acessing LoggerBalance event
-                let loggerBalanceEventEmmited = GLOBAL.web3Instance.eth.abi.decodeParameters(flashNewInputOps.loggerBalanceEventABI, tx.logs[0].data);
-                console.log(JSON.stringify(loggerBalanceEventEmmited));
-            } catch (error) {
-                throw (error);
-            }
-        break;
         
 
         default:

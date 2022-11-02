@@ -2,12 +2,10 @@ require("dotenv").config({path: ".env"});
 exports.blockchainConfig = {
 	network: {
 		EthereumForkSpecBlock: {
-			RPC_PROVIDER_URL: "http://127.0.0.1:8101",
-			SIGNED: true
+			RPC_PROVIDER_URL: "http://127.0.0.1:8101"
 		}, 
 		EthereumForkUpdate5: {
-			RPC_PROVIDER_URL: "http://127.0.0.1:8005",
-			SIGNED: false
+			RPC_PROVIDER_URL: "http://127.0.0.1:8005"
 		}		
 	},
 	blockchain: {
