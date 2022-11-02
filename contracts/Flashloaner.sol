@@ -50,8 +50,7 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
 
         //take current balance of the first token of the list (0 is router, 1 is from, 2 is to)
         address loanToken = RouteUtils.getInitialToken(_flashloanInputData);        
-        uint256 oldBalance = balanceOfToken(loanToken);
-
+        
         
         IDODO(_flashloanInputData.flashLoanPool).flashLoan(
             IDODO(_flashloanInputData.flashLoanPool)._BASE_TOKEN_() == loanToken
@@ -64,9 +63,6 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
             flashData
         );
 
-        //shows new old and new balances of token _asset
-        uint256 newBalance = balanceOfToken(loanToken);
-        emit LoggerBalance(loanToken, oldBalance, newBalance);
     }
 
 
@@ -117,6 +113,10 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
             } 
             amountIn = lastAmount;
         }
+
+        uint256 newBalance = balanceOfToken(loanToken);
+        emit LoggerBalance(loanToken, currentBalance, newBalance);
+        require(newBalance > currentBalance, "Borrowed balance bigger than new balance after swaps. No profit found!");
         
         //Return funds
         IERC20(loanToken).transfer(decodedInputData.flashLoanPool, loanAmount);
@@ -152,9 +152,6 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
         //instantiate AAVE lending pool
         ILendingPool lendingPool = ILendingPool(_flashloanInputData.flashLoanPool);
 
-        //get balance before loan
-        uint256 oldBalance = balanceOfToken(assets[0]);
-
         //calls flashloan function
         lendingPool.flashLoan(
             receiverAddress,
@@ -166,9 +163,6 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
             referralCode
         );
 
-         //shows new old and new balances of token _asset
-        uint256 newBalance = balanceOfToken(assets[0]);
-        emit LoggerBalance(assets[0], oldBalance, newBalance);
     }
 
 
@@ -216,6 +210,9 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
                 }
         }
 
+        uint256 newBalance = balanceOfToken(assets[0]);
+        emit LoggerBalance(assets[0], currentBalance, newBalance);
+        require(newBalance > currentBalance, "Borrowed balance bigger than new balance after swaps. No profit found!");
 
         // Approve the LendingPool contract allowance to *pull* the owed amount
         for (uint256 i = 0; i < assets.length; i++) {
