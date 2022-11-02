@@ -57,53 +57,7 @@ class FlashloanerOps {
         return txPromise;  
     }
 
-    /**
-     * withdraw all balance of a Token 
-     * @param {*} _amount 
-     * @returns 
-     */
-     async iterateExp1(){
-        
-        //handle response tx
-        let txPromise = new Promise(async (resolve, reject) =>{ 
-            try {            
-                            
-                //encode withdraw method 
-                let dataWithdraw = this.contractInstance.methods.iterate().encodeABI(); 
-            
-                //declare raw tx to withdraw
-                let rawWithdrawTx = {
-                    from: this.GLOBAL.ownerAddress, 
-                    to: this.contractInstance._address,
-                    maxFeePerGas: 10000000000,
-                    data: dataWithdraw
-                };
-
-                //sign tx
-                let signedWithdrawTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawWithdrawTx, this.GLOBAL.ownerAddress);  
-                
-                //send signed transaction
-                this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction)
-                .on('transactionHash', function(hash){                     
-                    console.log(`### tx: ${hash} ###`); 
-                })
-                .on('receipt', function(receipt){
-                    console.log(`### flashloan executed! ###`); 
-                })
-                .on('confirmation', function(confirmationNumber, receipt){ 
-                    console.log(`### Confirmation number: ${confirmationNumber} ###`);  
-                    resolve(receipt);
-                 })
-                .on('error', function(error) {
-                    throw(error);
-                });
-
-            } catch (error) {
-                reject(new Error(error));
-            }
-        });
-        return txPromise;  
-    }
+   
 
     async executeFlashloan (_parsedJson){
         //handle response tx
@@ -144,15 +98,22 @@ class FlashloanerOps {
                     console.log(`### tx: ${hash} ###`); 
                 })
                 .on('receipt', function(receipt){
-                    console.log(`### flashloan executed! ###`); 
+                    console.log(`### !!! Flashloan executed !!! ###`); 
                 })
                 .on('confirmation', function(confirmationNumber, receipt){ 
-                    console.log(`### Confirmation number: ${confirmationNumber} ###`);  
+                    console.log(`### Confirmation number: ${confirmationNumber} ###\n`);  
                     receipt.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
                     resolve(receipt);
                  })
                 .on('error', function(error) {
-                    throw(error);
+                    //avoids error if no profit found in order to continue and serialize log file
+                    if(error.reason && error.reason.search("No profit found")){
+                        console.log(`### !!! No profit found !!! \n###`);  
+                        error.receipt.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
+                        resolve(error.receipt);
+                    } else {
+                        throw(error);
+                    }                    
                 });
 
             } catch (error) {

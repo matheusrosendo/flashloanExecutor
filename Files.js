@@ -304,10 +304,12 @@
                 flashloanProtocol: _response.flashloanProtocol,
                 tx: _response.transactionHash,
                 blockNumber: _response.blockNumber,
-                tokenBorrowed: _parsedJson.addressPath[1],
+                tokenBorrowed: _parsedJson.flashloanInputData.swaps[0].tokenInAddress,
                 oldBalance: _oldBalance,
                 newBalance: _newBalance,
-                profit: profit
+                profit: profit,
+                gasUsed: _response.gasUsed,
+                txCost: _response.txCost
             }
             _parsedJson.result = result;
             

@@ -326,18 +326,27 @@ function getERC20(_symbol){
                                     
                                     //parse response data
                                     if(response){
-                                       
+                                        //acessing last event emited ( LoggerBalance )
+                                        if(response.logs && response.logs.length > 0){
+                                            console.log("### LoggerBalance event data emmited from contract: ###")
+                                            let loggerBalanceEventEmmited = GLOBAL.web3Instance.eth.abi.decodeParameters(flashloanerOps.loggerBalanceEventABI, response.logs[response.logs.length-1].data);
+                                            console.log(JSON.stringify(loggerBalanceEventEmmited));
+                                        }
+                                        
+                                        //calculate transaction cost in ETH
+                                        response.txCost = Web3.utils.fromWei(String(response.gasUsed * response.effectiveGasPrice));
+
                                         //take new balance of DAI
                                         let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
 
                                         //serialize log file with the execution data
                                         let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
-                                        console.log("##### Flashloan Executed! output file:"+serializedFile.location+" results: #####")
+                                        console.log("##### Results: #####")
                                         console.log(serializedFile.content.result);
                                         
                                         //remove original input file
                                         if(serializedFile){
-                                            console.log("!!!uncoment to delete original file")
+                                            console.log("!!! uncoment to delete original file")
                                             //Files.deleteFile(completeFileName);                        
                                         }
                                     } else {
@@ -365,7 +374,7 @@ function getERC20(_symbol){
                 let erc20ops = new ERC20ops(GLOBAL);
                 let currentContractBalanceDai = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
                 if(currentContractBalanceDai == 0){
-                    console.log("Thereis no DAI in the flashloan contract!")
+                    console.log("There is no DAI in the flashloan contract!")
                 } else {
                     let flashloanerOps = new FlashloanerOps(GLOBAL, FLASHLOANER_ADDRESS);
                     let tx = await flashloanerOps.withdrawToken(getERC20("DAI"));

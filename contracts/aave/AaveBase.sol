@@ -10,7 +10,7 @@ contract AaveBase {
         address[] calldata assets,
         uint256[] calldata amounts,
         uint256[] calldata premiums,
-        address initiator,
+        address /*initiator*/,
         bytes calldata data
     ) external returns (bool) {
         return _flashloanCallbackAave(assets, amounts, premiums, data);
