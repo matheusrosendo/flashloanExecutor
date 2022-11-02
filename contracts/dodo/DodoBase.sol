@@ -13,7 +13,7 @@ contract DodoBase is IFlashloan {
         uint256 quoteAmount,
         bytes calldata data
     ) external {
-        _flashLoanCallBack(sender, baseAmount, quoteAmount, data);
+        _flashLoanCallBackDodo(sender, baseAmount, quoteAmount, data);
     }
 
     //Note: CallBack function executed by DODOV2(DPP) flashLoan pool
@@ -23,7 +23,7 @@ contract DodoBase is IFlashloan {
         uint256 quoteAmount,
         bytes calldata data
     ) external {
-        _flashLoanCallBack(sender, baseAmount, quoteAmount, data);
+        _flashLoanCallBackDodo(sender, baseAmount, quoteAmount, data);
     }
 
     //Note: CallBack function executed by DODOV2(DSP) flashLoan pool
@@ -33,10 +33,10 @@ contract DodoBase is IFlashloan {
         uint256 quoteAmount,
         bytes calldata data
     ) external {
-        _flashLoanCallBack(sender, baseAmount, quoteAmount, data);
+        _flashLoanCallBackDodo(sender, baseAmount, quoteAmount, data);
     }
 
-    function _flashLoanCallBack(
+    function _flashLoanCallBackDodo(
         address,
         uint256,
         uint256,

@@ -5,13 +5,14 @@ import {ICurveFi} from "./curve/ICurveFi.sol";
 import {IUniswapV2Router02} from  "./uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import {AddressCoder} from "./AddressCoderLib.sol";
 import {DodoBase, IFlashloan, IDODO, RouteUtils} from "./dodo/DodoBase.sol";
+import {AaveBase} from "./aave/AaveBase.sol"; 
 import {ISwapRouter} from "./uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import {IUniswapV3Pool} from "./uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {Withdrawable, SafeERC20, IERC20} from "./utils/Withdrawable.sol";   
 import {FlashLoanReceiverBase, ILendingPoolAddressesProvider, ILendingPool} from "./aave/protocol-v2/contracts/flashloan/base/FlashLoanReceiverBase.sol";
 
 
-contract Flashloaner is DodoBase, Withdrawable, FlashLoanReceiverBase {
+contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
     uint testInputCall;
     enum ProtocolType{ UNISWAP_V2, CURVE_V1, UNISWAP_V3}
     mapping(uint8 => ProtocolType) protocolTypes;
@@ -47,7 +48,7 @@ contract Flashloaner is DodoBase, Withdrawable, FlashLoanReceiverBase {
     event LoggerSwapNew( LoggerSwapStruct loggerSwapStruct);
     
     //address passed is Aave Pool Provider V2 
-    constructor() FlashLoanReceiverBase(ILendingPoolAddressesProvider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5)) {
+    constructor()  {
         testInputCall = 0;
         //set protocol types
         protocolTypes[1] = ProtocolType.CURVE_V1;
@@ -111,7 +112,7 @@ contract Flashloaner is DodoBase, Withdrawable, FlashLoanReceiverBase {
     /**
         Callback function from DODO flashloan. This function is called after your contract has received the flash loaned amount
      */
-    function _flashLoanCallBack(
+    function _flashLoanCallBackDodo(
         address ,//first parameter is this contract  
         uint256 baseAmount,
         uint256 quoteAmount,
@@ -188,7 +189,10 @@ contract Flashloaner is DodoBase, Withdrawable, FlashLoanReceiverBase {
         address onBehalfOf = address(this);
         uint16 referralCode = 0;
 
-        LENDING_POOL.flashLoan(
+        //instantiate AAVE lending pool
+        ILendingPool lendingPool = ILendingPool(_flashloanInputData.flashLoanPool);
+        
+        lendingPool.flashLoan(
             receiverAddress,
             assets,
             amounts,
@@ -199,16 +203,16 @@ contract Flashloaner is DodoBase, Withdrawable, FlashLoanReceiverBase {
         );
     }
 
+
     /**
         This function is called after your contract has received the flash loaned amount
      */
-     function executeOperation(
+     function _flashloanCallbackAave(
         address[] calldata assets,
         uint256[] calldata amounts,
         uint256[] calldata premiums,
-        address initiator,
         bytes calldata data
-    ) external override returns (bool) {
+    ) internal override returns (bool) { 
 
         //unpack input data
         FlashInputData memory decodedInputData = abi.decode(
@@ -247,7 +251,7 @@ contract Flashloaner is DodoBase, Withdrawable, FlashLoanReceiverBase {
 
         // Approve the LendingPool contract allowance to *pull* the owed amount
         for (uint256 i = 0; i < assets.length; i++) {
-            setAllowance(amounts[i] + premiums[i], assets[i], address(LENDING_POOL));
+            setAllowance(amounts[i] + premiums[i], assets[i], decodedInputData.flashLoanPool);
         }
         return true;
     }

@@ -110,7 +110,7 @@ contract FlashloanNewInput is DodoBase, Withdrawable {
     /**
         This function is called after your contract has received the flash loaned amount
      */
-    function _flashLoanCallBack(
+    function _flashLoanCallBackDodo(
         address ,//first parameter is this contract  
         uint256 baseAmount,
         uint256 quoteAmount,

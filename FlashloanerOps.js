@@ -162,10 +162,10 @@ class FlashloanerOps {
                 let amountToBorrowOfFirstToken = Util.amountToBlockchain(_parsedJson.initialTokenAmount, _parsedJson.initialTokenDecimals);
 
                 //include amount on input data
-                _parsedJson.flashloanInputData.loanAmount = amountToBorrowOfFirstToken;
+                _parsedJson.flashloanInputDataAave.loanAmount = amountToBorrowOfFirstToken;
 
                 //encode method 
-                let encodedMethod = this.contractInstance.methods.flashloanAave(_parsedJson.flashloanInputData).encodeABI(); 
+                let encodedMethod = this.contractInstance.methods.flashloanAave(_parsedJson.flashloanInputDataAave).encodeABI(); 
             
                 //declare raw tx to withdraw
                 let rawFlashloanTx = {
