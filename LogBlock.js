@@ -4,7 +4,7 @@ const Web3 = require('web3');
 const Files = require("./Files.js");
 const Util = require("./Util.js");
 const {blockchainConfig} = require("./BlockchainConfig.js");
-const truffleConfig = require("./truffle-config.js");
+const HDWalletProvider = require("@truffle/hdwallet-provider")
 
 //global variables
 let GLOBAL = {
@@ -21,9 +21,11 @@ let GLOBAL = {
  * @returns 
  */
 function getWeb3Instance(_network){
-    try {       
+    try { 
+        
+      
         if(!GLOBAL.web3Instance){
-            GLOBAL.web3Instance = new Web3(truffleConfig.networks[_network].provider || truffleConfig.networks[_network].url);
+            GLOBAL.web3Instance = new Web3(new HDWalletProvider(process.env.OWNER_PK, blockchainConfig.network[_network].RPC_PROVIDER_URL));
             GLOBAL.web3Instance.eth.handleRevert = true;
         }
     } catch (error) {
@@ -33,6 +35,7 @@ function getWeb3Instance(_network){
 }
 
 async function getCurrentBlock(_network){
+    
     let blockNumber;
     try {
         block = await GLOBAL.web3Instance.eth.getBlock("latest");
@@ -75,17 +78,16 @@ async function showInitInfo(){
 
     //set network and some variables used to transfer initial amounts to contract and dev account (local forks only)
     let network = mode[1];
-    if(truffleConfig.networks[network] == undefined){
+    if(!blockchainConfig.network[network].RPC_PROVIDER_URL){
         throw new Error("invalid network name = "+network);
     }
         
     //set GLOBAL main values
     GLOBAL.web3Instance = getWeb3Instance(network);
-    GLOBAL.blockchain = truffleConfig.networks[network].blockchain;
+    GLOBAL.blockchain = blockchainConfig.network[network].blockchain;
     GLOBAL.network = network;
     GLOBAL.ownerAddress = String(process.env.OWNER_ADDRESS); ;
     GLOBAL.tokenList = blockchainConfig.blockchain[GLOBAL.blockchain].tokenList;
-    GLOBAL.networkId = truffleConfig.networks[network].network_id;
     await showInitInfo();
 
     try {
@@ -97,8 +99,7 @@ async function showInitInfo(){
         //the block just forked is one behind
         let currentBlock = getCurrentBlock(GLOBAL.network);
         logContent.block = currentBlock-1;
-        logContent.host = truffleConfig.networks[network].host;
-        logContent.port = truffleConfig.networks[network].port;
+        logContent.rpc = blockchainConfig.network[network].RPC_PROVIDER_URL;
         if(!Files.fileExists(logPath)){
             await Files.serializeObjectListToLogFile(logPath, logContent);
         }   

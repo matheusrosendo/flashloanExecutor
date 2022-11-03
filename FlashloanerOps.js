@@ -101,14 +101,14 @@ class FlashloanerOps {
                     console.log(`### !!! Flashloan executed !!! ###`); 
                 })
                 .on('confirmation', function(confirmationNumber, receipt){ 
-                    console.log(`### Confirmation number: ${confirmationNumber} ###\n`);  
+                    console.log(`### Confirmation number: ${confirmationNumber} ###`);  
                     receipt.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
                     resolve(receipt);
                  })
                 .on('error', function(error) {
                     //avoids error if no profit found in order to continue and serialize log file
                     if(error.reason && error.reason.search("No profit found")){
-                        console.log(`### !!! No profit found !!! \n###`);  
+                        console.log(`### !!! No profit found !!! ###`);  
                         error.receipt.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
                         resolve(error.receipt);
                     } else {
@@ -123,6 +123,31 @@ class FlashloanerOps {
         return txPromise;  
     }
 
+    isInputFileOk(_parsedJson){
+        let fileOk = true;
+        if(!_parsedJson.initialTokenAmount){
+            throw new Error("field initialTokenAmount not found in input file");
+        }
+        if(!_parsedJson.initialTokenDecimals){
+            throw new Error("field initialTokenDecimals not found in input file");
+        }        
+        if(!_parsedJson.flashloanInputData){
+            throw new Error("field flashloanInputData not found in input file");
+        }
+        if(!_parsedJson.flashloanInputData.flashLoanSource){
+            throw new Error("field flashLoanSource not found in input file");
+        }
+        if(!_parsedJson.flashloanInputData.flashLoanPool){
+            throw new Error("field flashLoanPool not found in input file");
+        }
+        if(!_parsedJson.flashloanInputData.swaps){
+            throw new Error("field _parsedJson.flashloanInputData.swaps not found in input file");
+        }
+        if(_parsedJson.flashloanInputData.swaps.length == 0){
+            throw new Error("at least one swap must be in the flashloanInputData.swaps list in input file");
+        }
+        return fileOk;
+    }
     
 }
 

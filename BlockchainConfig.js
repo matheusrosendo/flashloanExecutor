@@ -2,14 +2,21 @@ require("dotenv").config({path: ".env"});
 exports.blockchainConfig = {
 	network: {
 		EthereumForkSpecBlock: {
-			RPC_PROVIDER_URL: "http://127.0.0.1:8101"
+			RPC_PROVIDER_URL: "http://127.0.0.1:8101",
+			blockchain: "ethereum"
 		}, 
-		EthereumForkUpdate5: {
-			RPC_PROVIDER_URL: "http://127.0.0.1:8005"
+		EthereumForkUpdate1: {
+			RPC_PROVIDER_URL: "http://127.0.0.1:8001",
+			blockchain: "ethereum"
+		},
+		EthereumForkPast: {
+			RPC_PROVIDER_URL: "http://127.0.0.1:8100",
+			blockchain: "ethereum"
 		}		
 	},
 	blockchain: {
 		ethereum: {
+			NETWORK_ID: 1,
 			EXPLORER: "http://etherscan.io/address/",
 			FLASHLOAN_ADDRESS: String(process.env.ETHEREUM_FLASHLOAN_ADDRESS),
 			FLASHLOAN_DODO_ADDRESS: String(process.env.ETHEREUM_FLASHLOAN_DODO_ADDRESS),

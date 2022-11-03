@@ -3,6 +3,14 @@ const HDWalletProvider = require("@truffle/hdwallet-provider")
 require("dotenv").config({path: ".env"});
 const {blockchainConfig} = require("./BlockchainConfig.js");
 
+//truffle must be called passing port as last parameter
+let mode = process.argv.filter((item, index) =>{return index >= 2})
+let network = mode[mode.length-1];
+if(!blockchainConfig.network[network]){
+	throw new Error("Truffle error: undefined network "+network);
+}
+let RPCprovider = new HDWalletProvider(process.env.OWNER_PK, blockchainConfig.network[network].RPC_PROVIDER_URL);
+
 
 module.exports = {
 	// See <http://truffleframework.com/docs/advanced/configuration> to customize your Truffle configuration!
@@ -24,54 +32,24 @@ module.exports = {
 		blockchain: "polygon"
 	 },
 	 EthereumForkUpdate1: {
-	    host: "127.0.0.1", 
-		port: 8001,
+	    provider: RPCprovider,
 	    network_id: 1,
 	    skipDryRun: true,
-		
-		blockchain: "ethereum"
-	 },
-	 EthereumForkUpdate2: {
-	    host: "127.0.0.1", 
-		port: 8002,
-	    network_id: 1,
-	    skipDryRun: true,		
-
-		blockchain: "ethereum"
-	 },
-	 EthereumForkUpdate3: {
-	    host: "127.0.0.1", 
-		port: 8003,
-	    network_id: 1,
-	    skipDryRun: true,		
-
-		blockchain: "ethereum"
-	 },
-	 EthereumForkUpdate4: {
-	    host: "127.0.0.1", 
-		port: 8004,
-	    network_id: 1,
-	    skipDryRun: true,		
-
-		blockchain: "ethereum"
-	 },
-	 EthereumForkUpdate5: {
-		url: blockchainConfig.network["EthereumForkUpdate5"].RPC_PROVIDER_URL,
-	    network_id: 1,
-	    skipDryRun: true,
-		blockchain: "ethereum"
+		blockchain: "ethereum",
+		networkCheckTimeout: 1000000000,
+		timeoutBlocks: 10000000
 	 },
 	 EthereumForkPast: {
-	    host: "127.0.0.1", 
-		port: 8100,
+	    provider: RPCprovider,
 	    network_id: 1,
-	    skipDryRun: true,		
-
-		blockchain: "ethereum"
+	    skipDryRun: true,
+		blockchain: "ethereum",
+		networkCheckTimeout: 1000000000,
+		timeoutBlocks: 10000000
 	 },
 
 	 EthereumForkSpecBlock: {
-		provider: new HDWalletProvider(process.env.OWNER_PK, blockchainConfig.network["EthereumForkSpecBlock"].RPC_PROVIDER_URL),
+		provider: RPCprovider,
 	    network_id: 1,
 	    skipDryRun: true,
 		blockchain: "ethereum",

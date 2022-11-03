@@ -1,6 +1,8 @@
 #local copy of ethereum nodes
 database
 Networks
+execs
+old
 
 #folders with flashloan inputs and outputs
 FlashloanInput

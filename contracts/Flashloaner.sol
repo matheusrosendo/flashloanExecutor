@@ -19,7 +19,6 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
     mapping(uint8 => ProtocolType) protocolTypes;
     mapping(address => int128) stableCoinsPool3; //used by curve swaps only
     event LoggerNewAllowance(uint increasedAmount, address token, address router);
-    event LoggerBalance( address _reserve,uint256 oldBalance, uint256 newBalance); 
 
     constructor()  {
         
@@ -63,6 +62,8 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
             flashData
         );
 
+        //send profit back to the caller
+        IERC20(loanToken).safeTransfer(msg.sender, balanceOfToken(loanToken));
     }
 
 
@@ -115,11 +116,10 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
         }
 
         uint256 newBalance = balanceOfToken(loanToken);
-        emit LoggerBalance(loanToken, currentBalance, newBalance);
         require(newBalance > currentBalance, "Borrowed balance bigger than new balance after swaps. No profit found!");
         
         //Return funds
-        IERC20(loanToken).transfer(decodedInputData.flashLoanPool, loanAmount);
+        IERC20(loanToken).safeTransfer(decodedInputData.flashLoanPool, loanAmount);
     }
 
     /**
@@ -163,6 +163,8 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
             referralCode
         );
 
+        //send profit back to the caller
+        IERC20(assets[0]).safeTransfer(msg.sender, balanceOfToken(assets[0]));
     }
 
 
@@ -211,7 +213,6 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
         }
 
         uint256 newBalance = balanceOfToken(assets[0]);
-        emit LoggerBalance(assets[0], currentBalance, newBalance);
         require(newBalance > currentBalance, "Borrowed balance bigger than new balance after swaps. No profit found!");
 
         // Approve the LendingPool contract allowance to *pull* the owed amount

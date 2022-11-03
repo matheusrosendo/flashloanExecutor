@@ -4,7 +4,6 @@ const path = require("path");
 const Web3 = require('web3');
 const assert = require('assert');
 const Flashloaner = require("./build/contracts/Flashloaner");
-const truffleConfig = require("./truffle-config.js");
 const Files = require("./Files.js");
 const Util = require("./Util.js");
 const UniswapV3ops = require("./UniswapV3ops.js");
@@ -13,6 +12,7 @@ const FlashloanerOps = require("./FlashloanerOps.js");
 const {blockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const { get } = require("http");
 const Spot = require('@binance/connector/src/spot')
+const HDWalletProvider = require("@truffle/hdwallet-provider")
 
 Number.prototype.toFixedDown = function(digits) {
     var re = new RegExp("(\\d+\\.\\d{" + digits + "})(\\d)"),
@@ -39,7 +39,7 @@ let FLASHLOANER_ADDRESS;
 function getWeb3Instance(_network){
     try {       
         if(!GLOBAL.web3Instance){
-            GLOBAL.web3Instance = new Web3(truffleConfig.networks[_network].provider || truffleConfig.networks[_network].url);
+            GLOBAL.web3Instance = new Web3(new HDWalletProvider(process.env.OWNER_PK, blockchainConfig.network[_network].RPC_PROVIDER_URL));
             GLOBAL.web3Instance.eth.handleRevert = true;
         }
     } catch (error) {
@@ -79,7 +79,9 @@ async function getCurrentGasPriceInGwei(){
 async function isContractOk(_network, _OwnerAddress){
     try {
         let Web3js = getWeb3Instance(_network);
-        let flashloanerContract = new Web3js.eth.Contract(Flashloaner.abi, Flashloaner.networks[truffleConfig.networks[_network].network_id].address)
+        
+        
+        let flashloanerContract = new Web3js.eth.Contract(Flashloaner.abi, Flashloaner.networks[GLOBAL.networkId].address)
         let owner = await flashloanerContract.methods.owner().call(); 
         if (owner == _OwnerAddress){
             return true;
@@ -95,7 +97,7 @@ async function isContractOk(_network, _OwnerAddress){
 async function getOwner(_network, _contract){
     try {
         let Web3js = getWeb3Instance(_network);
-        let flashloanContract = new Web3js.eth.Contract(_contract.abi, _contract.networks[truffleConfig.networks[_network].network_id].address)
+        let flashloanContract = new Web3js.eth.Contract(_contract.abi, _contract.networks[GLOBAL.networkId].address)
         let owner = await flashloanContract.methods.owner().call(); 
         return owner;
     } catch (error) {
@@ -179,18 +181,18 @@ function getERC20(_symbol){
 
     //set network and some variables used to transfer initial amounts to contract and dev account (local forks only)
     let network = mode[1];
-    if(truffleConfig.networks[network] == undefined){
+    if(!blockchainConfig.network[network]){
         throw new Error("invalid network name = "+network);
     }
     
     
     //set GLOBAL main values
     GLOBAL.web3Instance = getWeb3Instance(network);
-    GLOBAL.blockchain = truffleConfig.networks[network].blockchain;
+    GLOBAL.blockchain = blockchainConfig.network[network].blockchain;
     GLOBAL.network = network;
     GLOBAL.ownerAddress = String(process.env.OWNER_ADDRESS); ;
     GLOBAL.tokenList = blockchainConfig.blockchain[GLOBAL.blockchain].tokenList;
-    GLOBAL.networkId = truffleConfig.networks[network].network_id;
+    GLOBAL.networkId = blockchainConfig.blockchain[blockchainConfig.network[network].blockchain].NETWORK_ID;
     await showInitInfo();
     
     // if flashloan address was set in .env, set FLASHLOAN_ADFRESS global variable with it, 
@@ -314,46 +316,45 @@ function getERC20(_symbol){
                                     //parse flashloan file
                                     let completeFileName = path.join(directoryPath, file);
                                     let parsedJson = Files.parseJSONtoOjectList(completeFileName);
+                                    console.log("##### Processing new file: "+file+" #####")
                                     
                                     //take old Balance of DAI
                                     let erc20ops = new ERC20ops(GLOBAL);
-                                    let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
+                                    let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
 
                                     //execute flashloan
                                     let flashloanerOps = new FlashloanerOps(GLOBAL);
-                                    
-                                    let response = await flashloanerOps.executeFlashloan(parsedJson);
-                                    
-                                    //parse response data
-                                    if(response){
-                                        //acessing last event emited ( LoggerBalance )
-                                        if(response.logs && response.logs.length > 0){
-                                            console.log("### LoggerBalance event data emmited from contract: ###")
-                                            let loggerBalanceEventEmmited = GLOBAL.web3Instance.eth.abi.decodeParameters(flashloanerOps.loggerBalanceEventABI, response.logs[response.logs.length-1].data);
-                                            console.log(JSON.stringify(loggerBalanceEventEmmited));
-                                        }
-                                        
-                                        //calculate transaction cost in ETH
-                                        response.txCost = Web3.utils.fromWei(String(response.gasUsed * response.effectiveGasPrice));
+                                    if(flashloanerOps.isInputFileOk(parsedJson)){
 
-                                        //take new balance of DAI
-                                        let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
-
-                                        //serialize log file with the execution data
-                                        let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
-                                        console.log("##### Results: #####")
-                                        console.log(serializedFile.content.result);
+                                        let response = await flashloanerOps.executeFlashloan(parsedJson);
                                         
-                                        //remove original input file
-                                        if(serializedFile){
-                                            console.log("!!! uncoment to delete original file")
-                                            //Files.deleteFile(completeFileName);                        
+                                        //parse response data
+                                        if(response){
+                                                                                    
+                                            //calculate transaction cost in ETH
+                                            response.txCost = Web3.utils.fromWei(String(response.gasUsed * response.effectiveGasPrice));
+
+                                            //take new balance of DAI
+                                            let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
+
+                                            //serialize log file with the execution data
+                                            let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
+                                            console.log("##### Results: #####")
+                                            console.log(serializedFile.content.result);
+                                            
+                                            //remove original input file
+                                            if(serializedFile){
+                                                console.log("!!! uncoment to delete original file")
+                                                //Files.deleteFile(completeFileName);                        
+                                            }
+                                        } else {
+                                            throw("Error: undefined response returned from executeFlashloan function!");
                                         }
                                     } else {
-                                        throw("Error: undefined response returned from executeFlashloan function!");
+                                        throw("Error: input file is not complete");
                                     }
                                 } catch (error) {
-                                    throw (error);
+                                    console.log(error);
                                 }
                             }
                         }
