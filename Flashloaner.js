@@ -344,8 +344,8 @@ function getERC20(_symbol){
                                             
                                             //remove original input file
                                             if(serializedFile){
-                                                console.log("!!! uncoment to delete original file")
-                                                //Files.deleteFile(completeFileName);                        
+                                                //console.log("!!! uncoment to delete original file")
+                                                Files.deleteFile(completeFileName);                        
                                             }
                                         } else {
                                             throw("Error: undefined response returned from executeFlashloan function!");
@@ -407,20 +407,107 @@ function getERC20(_symbol){
             try { 
                 console.log("######### Mode 11 | SHOW SOME UNISWAPV3 POOL ADDRESS #########");
                let uniOps = new UniswapV3ops(GLOBAL);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 10000);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 3000);               
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 500);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 1);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 0.3);               
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 0.05);
                await uniOps.showPoolAddress(getERC20("WETH"), getERC20("USDC"), 100);
 
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 10000);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 3000);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 500);
-               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 100);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 1);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 0.3);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 0.05);
+               await uniOps.showPoolAddress(getERC20("WETH"), getERC20("DAI"), 0.01);
 
-               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 10000);
-               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 3000);
-               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 500);
-               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 100);
+               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 1);
+               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 0.3);
+               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 0.05);
+               await uniOps.showPoolAddress(getERC20("USDC"), getERC20("DAI"), 0.01);
+            } catch (error) {
+                throw (error);
+            }
+        break
+
+        case '12': // get some pool addresses on UniswapV3
+            try { 
+               console.log("######### Mode 12 | UNISWAPV3 GET AMOUNT OUT LOCAL CALC #########");
+               let uniOps = new UniswapV3ops(GLOBAL); 
+               console.log("Get amount out 1 WETH -> USDC (0.3)");
+               let usdcAmountOut = await uniOps.getAmountOut(1, getERC20("WETH"), getERC20("USDC"), 0.3);
+               console.log(usdcAmountOut);               
+               //console.log("Get amount out 1 WETH -> USDC (0.05)");
+               /* usdcAmountOut = await uniOps.getAmountOut(1000, getERC20("WETH"), getERC20("USDC"), 0.05);
+               console.log(usdcAmountOut);
+               console.log("Get amount out 1 WETH -> USDC (0.01)");
+               usdcAmountOut = await uniOps.getAmountOut(1000, getERC20("WETH"), getERC20("USDC"), 0.01);
+               console.log(usdcAmountOut);
+
+               console.log("Get amount out 1600 USDC -> WETH (0.3)");
+               let wethAmountOut = await uniOps.getAmountOut(1600, getERC20("USDC"), getERC20("WETH"), 0.3);
+               console.log(wethAmountOut);  
+               console.log("Get amount out 1600 USDC -> WETH (0.05)");
+               wethAmountOut = await uniOps.getAmountOut(1600, getERC20("USDC"), getERC20("WETH"), 0.05);
+               console.log(wethAmountOut);
+               console.log("Get amount out 1600 USDC -> WETH (0.01)");
+               wethAmountOut = await uniOps.getAmountOut(1600, getERC20("USDC"), getERC20("WETH"), 0.01);
+               console.log(wethAmountOut); */
+
+            } catch (error) {
+                throw (error);
+            }
+        break
+
+        case '13': // get some pool addresses on UniswapV3
+            try { 
+               console.log("######### Mode 13 | UNISWAPV3 GET AMOUNT OUT FROM BLOCKCHAIN #########");
+               let uniOps = new UniswapV3ops(GLOBAL); 
+               //console.log("Simulate arbitrage internal USDC WETH UNI USDC");
+               let amountOut = await uniOps.queryAmountOut(1, getERC20("WETH"), getERC20("USDC"), 0.3);
+               console.log(amountOut);
+
+              /*  console.log("Get amount out 1 WETH -> UNI (0.05)");
+               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.05));
+               console.log("Get amount out 1 WETH -> UNI (0.3)");
+               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.3));
+
+               console.log("Get amount out 1 UNI -> WETH (0.05)");
+               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.05));
+
+               console.log("Get amount out 1 UNI -> WETH (0.3)");
+               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.3));
+
+               console.log("Get amount out 1 UNI -> WETH (0.01)");
+               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.01));
+ */
+
+            } catch (error) {
+                throw (error);
+            }
+        break
+
+        case '14': // get FEE of the best amount out
+            try { 
+               console.log("######### Mode 14 | UNISWAPV3 GET FEE of BEST AMOUNT OUT #########");
+               let uniOps = new UniswapV3ops(GLOBAL); 
+               //console.log("Simulate arbitrage internal USDC WETH UNI USDC");
+               let fee = await uniOps.queryFeeOfBestRoute(1, getERC20("UNI"), getERC20("AAVE"));
+               console.log("fee found:"+fee); 
+
+               console.log(GLOBAL.web3Instance.utils.isAddress("0x0000000000000000000000000000000000000000"));
+
+              /*  console.log("Get amount out 1 WETH -> UNI (0.05)");
+               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.05));
+               console.log("Get amount out 1 WETH -> UNI (0.3)");
+               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.3));
+
+               console.log("Get amount out 1 UNI -> WETH (0.05)");
+               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.05));
+
+               console.log("Get amount out 1 UNI -> WETH (0.3)");
+               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.3));
+
+               console.log("Get amount out 1 UNI -> WETH (0.01)");
+               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.01));
+ */
+
             } catch (error) {
                 throw (error);
             }

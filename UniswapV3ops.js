@@ -78,27 +78,133 @@ class UniswapV3ops {
      async getPoolAddress(_tokenIn, _tokenOut, _fee){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
-            try {            
+            try {  
+                let feeBip = _fee * (10**4);          
                 let swapFactoryAddress = blockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_FACTORY_ADDRESS;
                 let swapFactoryContract = new this.GLOBAL.web3Instance.eth.Contract(blockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_FACTORY_ABI, swapFactoryAddress, { from: this.GLOBAL.ownerAddress });
                 
-                let address = await swapFactoryContract.methods.getPool(_tokenIn.address, _tokenOut.address, _fee).call();
+                let address = await swapFactoryContract.methods.getPool(_tokenIn.address, _tokenOut.address, feeBip).call();
+                console.log(address);
                 resolve(address);
+            } catch (error) {
+                reject(error);
+            }
+        });
+        return txPromise;  
+    } 
+
+    async queryAmountOut(_amountIn, _tokenIn, _tokenOut, _fee){
+        //handle response tx
+        let txPromise = new Promise(async (resolve, reject) =>{ 
+            try {    
+                let feeBip = _fee * (10**4); 
+                let amountInWei = Util.amountToBlockchain(_amountIn, _tokenIn.decimals);   
+                let quoterAddress = blockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS;
+                let quoterContract = new this.GLOBAL.web3Instance.eth.Contract(blockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ABI, quoterAddress, { from: this.GLOBAL.ownerAddress });
+                
+                let amountOutWei = await quoterContract.methods.quoteExactInputSingle(_tokenIn.address, _tokenOut.address, feeBip, amountInWei, 0).call();
+                let amountOut = Util.amountFromBlockchain(amountOutWei, _tokenOut.decimals);
+                resolve(amountOut);
+            } catch (error) {
+                reject(error);
+            }
+        });
+        return txPromise;  
+    } 
+
+    async getToken0AddressFromPool(_poolAddress){
+        //handle response tx
+        let txPromise = new Promise(async (resolve, reject) =>{ 
+            try {   
+                let poolV3Abi = blockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_POOL;         
+                let poolContract = new this.GLOBAL.web3Instance.eth.Contract(poolV3Abi, _poolAddress, { from: this.GLOBAL.ownerAddress });                
+                let token0address = await poolContract.methods.token0().call();
+                resolve(token0address);
+            } catch (error) {
+                reject(new Error(error));
+            }
+        });
+        return txPromise;  
+    }
+
+    async getAmountOut(_amount, _tokenIn, _tokenOut, _fee){
+        let feeBip = _fee * (10**4);
+        console.log(`feeBip ${feeBip}`);
+        try {
+                    
+            let poolAddress = await this.getPoolAddress(_tokenIn, _tokenOut, feeBip);
+            if(poolAddress){
+                console.log(`poolAddress: ${poolAddress}`);
+                let token0address = await this.getToken0AddressFromPool(poolAddress);
+                console.log(`token0address: ${token0address}`);
+                let slot0 = await this.getSlot0FromPool(poolAddress);
+                let P = ( (slot0.sqrtPriceX96) / (2 ** 96) ) ** 2;
+                console.log(`P: ${P}`)
+                console.log(`tick: ${slot0.tick}`)
+                console.log(`1.0001**tick: ${1.0001 ** slot0.tick}`)
+                if(_tokenIn.address == token0address){
+                    P = 1 / P;
+                } 
+                let amountOut = ((_amount * (10 ** _tokenIn.decimals)) / (P * (10 ** _tokenOut.decimals))) ;
+                let amountFee = amountOut * (_fee/100);
+                console.log(`amountFee ${amountFee}`);
+                return amountOut - amountFee;
+            } else {
+                console.log("pool not found for informed tokens and feeBip ")
+            }
+        } catch (error) {
+            throw (error);
+        }
+    }
+
+    async showPoolAddress(_tokenIn, _tokenOut, _fee){
+        try {
+            
+            let address = await this.getPoolAddress(_tokenIn, _tokenOut, _fee);
+            console.log(`${_tokenIn.symbol} <> ${_tokenOut.symbol} %${Number(_fee).toFixed(4)} fee | ${blockchainConfig.blockchain[this.GLOBAL.blockchain].EXPLORER}${address}`);
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+
+    async queryFeeOfBestRoute(_amountIn, _tokenIn, _tokenOut){
+        try {
+            let possibleFees = blockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_FEES;
+            let bestFee = 0;
+            let bestAmountOut = 0;
+            for (let fee of possibleFees){
+                let poolAddress = await this.getPoolAddress(_tokenIn, _tokenOut, fee);
+                if (poolAddress && this.GLOBAL.web3Instance.utils.isAddress(poolAddress) && poolAddress != "0x0000000000000000000000000000000000000000"){
+                    let currentAmountOut = await this.queryAmountOut(_amountIn, _tokenIn, _tokenOut, fee);
+                    if(currentAmountOut > bestAmountOut){
+                        bestAmountOut = currentAmountOut;
+                        bestFee = fee;
+                    }
+                } else {
+                    console.log(`Pool address not found for ${_tokenIn.symbol} ${_tokenOut.symbol} fee: ${fee}`);
+                }               
+            } 
+            return bestFee;          
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+
+    async getSlot0FromPool(_poolAddress){
+        //handle response tx
+        let txPromise = new Promise(async (resolve, reject) =>{ 
+            try {      
+                let poolV3Abi = blockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_POOL;
+                let poolContract = new this.GLOBAL.web3Instance.eth.Contract(poolV3Abi, _poolAddress, { from: this.GLOBAL.ownerAddress });
+                
+                let slot0 = await poolContract.methods.slot0().call();
+                resolve(slot0);
             } catch (error) {
                 reject(new Error(error));
             }
         });
         return txPromise;  
     } 
-
-    async showPoolAddress(_tokenIn, _tokenOut, _fee){
-        try {
-            let address = await this.getPoolAddress(_tokenIn, _tokenOut, _fee);
-            console.log(`${_tokenIn.symbol} <> ${_tokenOut.symbol} %${Number(_fee/(10000).toFixed(2))} fee | ${blockchainConfig.blockchain[this.GLOBAL.blockchain].EXPLORER}${address}`);
-        } catch (error) {
-            throw new Error(error);
-        }
-    }
 
     /**
      * Realize swap between two tokens
