@@ -9,7 +9,7 @@ const Util = require("./Util.js");
 const UniswapV3ops = require("./UniswapV3ops.js");
 const ERC20ops = require("./ERC20ops.js");
 const FlashloanerOps = require("./FlashloanerOps.js");
-const {blockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
+const {BlockchainConfig, getItemFromTokenList, GLOBAL} = require("./BlockchainConfig.js");
 const { get } = require("http");
 const Spot = require('@binance/connector/src/spot')
 const HDWalletProvider = require("@truffle/hdwallet-provider")
@@ -21,14 +21,6 @@ Number.prototype.toFixedDown = function(digits) {
 };
 
 //global variables
-let GLOBAL = {
-    web3Instance: null,
-    network: null,
-    blockchain: null,
-    ownerAddress: null,
-    tokenList: null,
-    networkId: null
-}
 let FLASHLOANER_ADDRESS;
 
 
@@ -39,8 +31,8 @@ let FLASHLOANER_ADDRESS;
 function getWeb3Instance(_network){
     try {       
         if(!GLOBAL.web3Instance){
-            GLOBAL.web3Instance = new Web3(new HDWalletProvider(process.env.OWNER_PK, blockchainConfig.network[_network].RPC_PROVIDER_URL));
-            GLOBAL.web3Instance.eth.handleRevert = true;
+            GLOBAL.web3Instance = new Web3(new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[_network].BLOCKCHAIN_RPC_SERVER_PROVIDER));
+            //GLOBAL.web3Instance.eth.handleRevert = true;
         }
     } catch (error) {
         throw new Error("Error to connect to "+_network+" error: "+error);
@@ -54,7 +46,7 @@ async function getCurrentBlock(_network){
         block = await GLOBAL.web3Instance.eth.getBlock("latest");
         blockNumber = block.number;
     } catch (error) {
-        throw new Error("trying to get block, verify connection with " + blockchainConfig.network[_network].RPC_PROVIDER_URL);
+        throw new Error("trying to get block, verify connection with " + BlockchainConfig.network[_network].BLOCKCHAIN_RPC_SERVER_PROVIDER);
     }
     return blockNumber;
 }
@@ -65,7 +57,7 @@ async function getCurrentGasPriceInGwei(){
         let gasPrice = await GLOBAL.web3Instance.eth.getGasPrice();
         gasPriceInGwei = Web3.utils.fromWei(gasPrice, "gwei");
     } catch (error) {
-        throw new Error("trying to get gas price, verify connection with " + blockchainConfig.network[_network].RPC_PROVIDER_URL);
+        throw new Error("trying to get gas price, verify connection with " + BlockchainConfig.network[_network].BLOCKCHAIN_RPC_SERVER_PROVIDER);
     }
     return gasPriceInGwei;
 }
@@ -155,9 +147,19 @@ async function showInitInfo(){
     let currentBlock = await getCurrentBlock(GLOBAL.network);
     let gasPriceInGwei = await getCurrentGasPriceInGwei();
     console.log(`\n### ${Util.formatDateTime(new Date())} ###`); 
-    console.log(`### RPC provider: ${blockchainConfig.network[GLOBAL.network].RPC_PROVIDER_URL} ###`); 
+    console.log(`### RPC provider: ${BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_SERVER_PROVIDER} ###`); 
     console.log(`### blockchain: ${GLOBAL.blockchain} ###`); 
     console.log(`### network: ${GLOBAL.network} | block: ${currentBlock} | last gas price: ${gasPriceInGwei} gwei ###\n`); 
+}
+
+function setMainGlobalData(_network){
+    GLOBAL.network = _network;
+    GLOBAL.web3Instance = getWeb3Instance(GLOBAL.network);
+    GLOBAL.blockchain = BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN;
+    GLOBAL.RPCprovider = BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_SERVER_PROVIDER;
+    GLOBAL.ownerAddress = String(process.env.OWNER_ADDRESS);
+    GLOBAL.tokenList = BlockchainConfig.blockchain[GLOBAL.blockchain].tokenList;
+    GLOBAL.networkId = BlockchainConfig.blockchain[GLOBAL.blockchain].NETWORK_ID;
 }
 
 /**
@@ -181,24 +183,20 @@ function getERC20(_symbol){
 
     //set network and some variables used to transfer initial amounts to contract and dev account (local forks only)
     let network = mode[1];
-    if(!blockchainConfig.network[network]){
+    if(!BlockchainConfig.network[network]){
         throw new Error("invalid network name = "+network);
     }
-    
-    
+        
     //set GLOBAL main values
-    GLOBAL.web3Instance = getWeb3Instance(network);
-    GLOBAL.blockchain = blockchainConfig.network[network].blockchain;
-    GLOBAL.network = network;
-    GLOBAL.ownerAddress = String(process.env.OWNER_ADDRESS); ;
-    GLOBAL.tokenList = blockchainConfig.blockchain[GLOBAL.blockchain].tokenList;
-    GLOBAL.networkId = blockchainConfig.blockchain[blockchainConfig.network[network].blockchain].NETWORK_ID;
+    setMainGlobalData(network)
+    
+    //show init main information
     await showInitInfo();
     
     // if flashloan address was set in .env, set FLASHLOAN_ADFRESS global variable with it, 
     // or use local deployed contract address otherwise 
-    if(blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOANER_ADDRESS){
-        FLASHLOANER_ADDRESS = blockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOANER_ADDRESS
+    if(BlockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOANER_ADDRESS){
+        FLASHLOANER_ADDRESS = BlockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOANER_ADDRESS
     } else {
         FLASHLOANER_ADDRESS = Flashloaner.networks[GLOBAL.networkId].address; 
     }
@@ -398,7 +396,7 @@ function getERC20(_symbol){
             console.log("GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
             console.log("flashloan Owner Address: "+ownerFlashloan);
             console.log("DAItokenAddress: "+getERC20("DAI").address);
-            console.log("RPC Provider URL: "+blockchainConfig.network[GLOBAL.network].RPC_PROVIDER_URL);
+            console.log("RPC Provider URL: "+BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_SERVER_PROVIDER);
             let chainId = await GLOBAL.web3Instance.eth.getChainId()
             console.log("chainId = "+chainId);
         break;        
@@ -488,10 +486,25 @@ function getERC20(_symbol){
                console.log("######### Mode 14 | UNISWAPV3 GET FEE of BEST AMOUNT OUT #########");
                let uniOps = new UniswapV3ops(GLOBAL); 
                //console.log("Simulate arbitrage internal USDC WETH UNI USDC");
-               let fee = await uniOps.queryFeeOfBestRoute(1, getERC20("UNI"), getERC20("AAVE"));
-               console.log("fee found:"+fee); 
+               let result = await uniOps.queryFeeOfBestRoute(100, getERC20("UNI"), getERC20("AAVE"), []);
+               console.log("best fee found:"+result.bestFee); 
+               console.log(result.updatedBlacklist); 
 
-               console.log(GLOBAL.web3Instance.utils.isAddress("0x0000000000000000000000000000000000000000"));
+               result = await uniOps.queryFeeOfBestRoute(100, getERC20("UNI"), getERC20("USDT"), []);
+               console.log("best fee found:"+result.bestFee); 
+               console.log(result.updatedBlacklist); 
+
+               result = await uniOps.queryFeeOfBestRoute(100, getERC20("AAVE"), getERC20("USDT"), []);
+               console.log("best fee found:"+result.bestFee); 
+               console.log(result.updatedBlacklist);
+
+               result = await uniOps.queryFeeOfBestRoute(100, getERC20("AAVE"), getERC20("USDC"), []);
+               console.log("best fee found:"+result.bestFee); 
+               console.log(result.updatedBlacklist);
+
+               result = await uniOps.queryFeeOfBestRoute(100, getERC20("AAVE"), getERC20("DAI"), []);
+               console.log("best fee found:"+result.bestFee); 
+               console.log(result.updatedBlacklist);
 
               /*  console.log("Get amount out 1 WETH -> UNI (0.05)");
                console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.05));

@@ -1,4 +1,4 @@
-const {blockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
+const {BlockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const Util = require("./Util.js");
 const assert = require('assert');
 const Flashloan = require("./build/contracts/Flashloaner");

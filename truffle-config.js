@@ -1,15 +1,15 @@
 // const path = require("path");
 const HDWalletProvider = require("@truffle/hdwallet-provider")
 require("dotenv").config({path: ".env"});
-const {blockchainConfig} = require("./BlockchainConfig.js");
+const {BlockchainConfig} = require("./BlockchainConfig.js");
 
-//truffle must be called passing port as last parameter
+//truffle must be called passing network name as last parameter
 let mode = process.argv.filter((item, index) =>{return index >= 2})
 let network = mode[mode.length-1];
-if(!blockchainConfig.network[network]){
+if(!BlockchainConfig.network[network]){
 	throw new Error("Truffle error: undefined network "+network);
 }
-let RPCprovider = new HDWalletProvider(process.env.OWNER_PK, blockchainConfig.network[network].RPC_PROVIDER_URL);
+let RPCprovider = new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[network].BLOCKCHAIN_RPC_SERVER_PROVIDER);
 
 
 module.exports = {

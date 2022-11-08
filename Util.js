@@ -122,6 +122,24 @@ class Util {
         return found;
     }
 
+     /**
+     * Searches for a item in the blacklist of UniswapV3 
+     * @param {*} _exchangeList 
+     * @param {*} _symbol 
+     * @param {*} _DEX 
+     * @returns 
+     */
+      static isBlacklistedUniswapV3(_blacklist, _token1, _token2, _fee){
+        let found = false
+        for (let item of _blacklist) {
+            if((item.token1 === _token1 && item.token2 === _token2 && item.fee === _fee)){
+                found = true;
+                break;
+            }
+        }
+        return found;
+    }
+
     /**
      * Searches for a address in the list 
      * @param {*} _exchangeList 
@@ -189,6 +207,14 @@ class Util {
     static addToBlacklist(_blacklist, _DEX, _token1, _token2, _contractTVL, _address){
         _blacklist.push({"DEX":_DEX, "token1":_token1, "token2":_token2, "TVL":_contractTVL, "address":_address});
         console.log("#### "+_DEX+" "+_token1+ " "+_token2+ " has $"+parseFloat(_contractTVL).toFixed(2)+ " | blacklisted ####");
+        return _blacklist;
+    }
+
+    static addToBlacklistUniswapV3(_blacklist, _token1, _token2, _fee){
+        if(!Util.isBlacklistedUniswapV3(_blacklist, _token1, _token2, _fee)){
+            _blacklist.push({"token1":_token1, "token2":_token2, "fee":_fee});
+            console.log("#### UniswapV3 "+_token1+ " "+_token2+ " fee = "+_fee+ " | blacklisted ####");
+        }        
         return _blacklist;
     }
 
