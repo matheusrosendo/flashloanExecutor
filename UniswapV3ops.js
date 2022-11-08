@@ -48,7 +48,7 @@ class UniswapV3ops {
                 let rawSwapTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: swapRouterAddress,
-                    maxFeePerGas: 10000000000,
+                    maxFeePerGas: 100000000000,
                     data: dataSwap
                 };
 
@@ -92,6 +92,14 @@ class UniswapV3ops {
         return txPromise;  
     } 
 
+    /**
+     * Converts amountIn to wei, get amount out on Uniswap V3 according to _fee and converts amountOutWei to regular amountOut according to token out decimals
+     * @param {*} _amountIn 
+     * @param {*} _tokenIn 
+     * @param {*} _tokenOut 
+     * @param {*} _fee 
+     * @returns 
+     */
     async queryAmountOut(_amountIn, _tokenIn, _tokenOut, _fee){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
@@ -105,7 +113,8 @@ class UniswapV3ops {
                 let amountOut = Util.amountFromBlockchain(amountOutWei, _tokenOut.decimals);
                 resolve(amountOut);
             } catch (error) {
-                reject(error);
+                console.log(`### error on query UniswapV3 ${_tokenIn.symbol} ${_tokenOut.symbol} fee:${_fee} error: ${error} ### `)
+                resolve(0.0);
             }
         });
         return txPromise;  
@@ -188,12 +197,14 @@ class UniswapV3ops {
                 }
                 if(executeQuery){
                     try {
-                                                
-                        let currentAmountOut = await this.queryAmountOut(_amountIn, _tokenIn, _tokenOut, fee);
-                        if(currentAmountOut > bestAmountOut){
-                            bestAmountOut = currentAmountOut;
-                            bestFee = fee;
-                        }
+                        let pairAddressPool =  await this.getPoolAddress(_tokenIn, _tokenOut, fee);
+                        if(pairAddressPool && pairAddressPool != "0x0000000000000000000000000000000000000000"){
+                            let currentAmountOut = await this.queryAmountOut(_amountIn, _tokenIn, _tokenOut, fee);
+                            if(currentAmountOut > bestAmountOut){
+                                bestAmountOut = currentAmountOut;
+                                bestFee = fee;
+                            }
+                        }  
                     } catch (error) {//in case of error getting amount out adds it in the blacklist and continues
                         if(_blacklist){
                             _blacklist = Util.addToBlacklistUniswapV3(_blacklist, _tokenIn.symbol, _tokenOut.symbol, fee);
@@ -275,7 +286,7 @@ class UniswapV3ops {
                 let rawSwapTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: swapRouterAddress,
-                    maxFeePerGas: 10000000000,
+                    maxFeePerGas: 100000000000,
                     data: dataSwap
                 };
 

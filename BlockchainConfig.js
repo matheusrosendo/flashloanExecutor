@@ -20,6 +20,7 @@ exports.BlockchainConfig = {
 			FORCE_GENERATE_PATH: false
 		}, 
 		EthereumMainnet: {
+			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
 			BLOCKCHAIN_RPC_SERVER_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false

@@ -49,7 +49,7 @@ class ERC20ops {
                 let rawTransferTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: contract._address,
-                    maxFeePerGas: 10000000000,
+                    maxFeePerGas: 100000000000,
                     data: dataTransfer
                 };
 
@@ -116,7 +116,7 @@ class ERC20ops {
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: wethContract._address,
-                    maxFeePerGas: 10000000000,
+                    maxFeePerGas: 100000000000,
                     data: dataWithdraw
                 };
 
@@ -159,7 +159,7 @@ class ERC20ops {
                 let rawApproveTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: contractInstance._address,
-                    maxFeePerGas: 10000000000,
+                    maxFeePerGas: 100000000000,
                     data: dataApprove
                 };
 

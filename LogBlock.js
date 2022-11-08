@@ -97,7 +97,7 @@ async function showInitInfo(){
         logContent.network = network;
         logContent.datetime = Util.formatDateTime(new Date());
         //the block just forked is one behind
-        let currentBlock = getCurrentBlock(GLOBAL.network);
+        let currentBlock = await getCurrentBlock(GLOBAL.network);
         logContent.block = currentBlock-1;
         logContent.rpc = BlockchainConfig.network[network].BLOCKCHAIN_RPC_SERVER_PROVIDER;
         if(!Files.fileExists(logPath)){

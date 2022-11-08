@@ -31,7 +31,7 @@ class FlashloanerOps {
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
-                    maxFeePerGas: 10000000000,
+                    maxFeePerGas: 100000000000,
                     data: dataWithdraw
                 };
 
@@ -84,7 +84,7 @@ class FlashloanerOps {
                 let rawFlashloanTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
-                    maxFeePerGas: Web3.utils.toWei('10', 'gwei'),
+                    maxFeePerGas: 100000000000,
                     gasLimit: 10_000_000,
                     data: encodedMethod
                 };
