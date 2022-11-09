@@ -146,6 +146,21 @@ class FlashloanerOps {
         if(_parsedJson.flashloanInputData.swaps.length == 0){
             throw new Error("at least one swap must be in the flashloanInputData.swaps list in input file");
         }
+        //vefify fees addressesss 
+        for (let swap of _parsedJson.flashloanInputData.swaps){
+            if (!this.GLOBAL.web3Instance.utils.isAddress(swap.routerAddress)){
+                throw new Error("invalid address found: routerAddress");
+            }
+            if (!this.GLOBAL.web3Instance.utils.isAddress(swap.tokenInAddress)){
+                throw new Error("invalid address found: tokenInAddress");
+            }
+            if (!this.GLOBAL.web3Instance.utils.isAddress(swap.tokenOutAddress)){
+                throw new Error("invalid address found: tokenOutAddress");
+            }
+            if(!swap.fee){
+                throw new Error("invalid fee found");
+            }
+        }
         return fileOk;
     }
     
