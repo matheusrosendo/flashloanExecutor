@@ -6,7 +6,7 @@ const {BlockchainConfig} = require("../BlockchainConfig.js");
 module.exports = async function (deployer, network) {
     try {
         if (truffleConfig.networks[network].provider || truffleConfig.networks[network].url){
-            console.log(`#### Deploying contracs on ${network} running on ${BlockchainConfig.network[network].BLOCKCHAIN_RPC_SERVER_PROVIDER} ####`);
+            console.log(`#### Deploying contracs on ${network} running on ${BlockchainConfig.network[network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER} ####`);
             await deployer.deploy(AddressCoderLib);
             await deployer.link(AddressCoderLib, Flashloaner);
             await deployer.deploy(Flashloaner);

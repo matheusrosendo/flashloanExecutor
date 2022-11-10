@@ -301,6 +301,8 @@
             let profit = _newBalance - _oldBalance; 
             //get result data
             let result = {
+                status: _response.status,
+                details: _response.details,
                 flashloanProtocol: _response.flashloanProtocol,
                 tx: _response.transactionHash,
                 blockNumber: _response.blockNumber,

@@ -2,34 +2,61 @@ require("dotenv").config({path: ".env"});
 exports.BlockchainConfig = {
 	network: {
 		EthereumForkSpecBlock: {
-			BLOCKCHAIN_RPC_SERVER_PROVIDER: "http://127.0.0.1:8101",
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8101",
 			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8101",
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false
 		}, 
 		EthereumForkUpdate1: {
-			BLOCKCHAIN_RPC_SERVER_PROVIDER: "http://127.0.0.1:8001",
 			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8001",
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY + "@15739206",
 			BLOCKCHAIN: "ethereum",
-			FORCE_GENERATE_PATH: false
+			FORCE_GENERATE_PATH: false,
+			ONLY_LOCAL: false,
+			ONLY_SERVER: true
+		},
+		EthereumForkUpdate2: {
+			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8002",
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8002",
+			BLOCKCHAIN: "ethereum",
+			FORCE_GENERATE_PATH: false,
+			ONLY_LOCAL: false,
+			ONLY_SERVER: true
 		},
 		EthereumForkPast: {
-			BLOCKCHAIN_RPC_SERVER_PROVIDER: "http://127.0.0.1:8100",
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8100",
 			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8100",
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false
 		}, 
 		EthereumMainnet: {
 			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
-			BLOCKCHAIN_RPC_SERVER_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false
-		}		
+		},
+		EthereumAlchemy: {
+			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy",
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy",
+			BLOCKCHAIN: "ethereum",
+			FORCE_GENERATE_PATH: false
+		},
+		EthereumLocalNode: {
+			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8545",
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8545",
+			BLOCKCHAIN: "ethereum",
+			FORCE_GENERATE_PATH: false
+		}			
 	},
 	blockchain: {
 		ethereum: {
 			NETWORK_ID: 1,
 			EXPLORER: "http://etherscan.io/address/",
+			RPC_PROVIDERS: [
+				process.env.ETHEREUM_RPC_PROVIDER_0,
+				process.env.ETHEREUM_RPC_PROVIDER_1,
+				process.env.ETHEREUM_RPC_PROVIDER_2,
+			],
 			FLASHLOAN_ADDRESS: String(process.env.ETHEREUM_FLASHLOAN_ADDRESS),
 			FLASHLOAN_SOURCE: "Dodo",
 			FLASHLOAN_POOL_ADDRESS: "0x3058EF90929cb8180174D74C507176ccA6835D73",

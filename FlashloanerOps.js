@@ -59,7 +59,7 @@ class FlashloanerOps {
 
    
 
-    async executeFlashloan (_parsedJson){
+    executeFlashloan (_parsedJson){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
@@ -76,7 +76,7 @@ class FlashloanerOps {
                 } else if(_parsedJson.flashloanInputData.flashLoanSource == "Aave"){
                     encodedMethod = this.contractInstance.methods.flashloanAave(_parsedJson.flashloanInputData).encodeABI(); 
                 } else {
-                    throw ("Invalid flashloan souce on flashloanInputData!");
+                    reject("Invalid flashloan souce on flashloanInputData!");
                 }
                 
             
@@ -103,21 +103,28 @@ class FlashloanerOps {
                 .on('confirmation', function(confirmationNumber, receipt){ 
                     console.log(`### Confirmation number: ${confirmationNumber} ###`);  
                     receipt.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
+                    receipt.status = "confirmed";
+                    receipt.details = "Ok"
                     resolve(receipt);
                  })
                 .on('error', function(error) {
-                    //avoids error if no profit found in order to continue and serialize log file
-                    if(error.reason && error.reason.search("No profit found")){
-                        console.log(`### !!! No profit found !!! ###`);  
-                        error.receipt.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
-                        resolve(error.receipt);
-                    } else {
-                        throw(error);
-                    }                    
+                    console.log(`### No profit found: ###`);  
+                    let response = error.receipt;
+                    response.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
+                    response.status = "failed";
+                    let details = "";
+                    if(error.reason){
+                        details += error.reason + " \n";
+                    }
+                    if(error.message){
+                        details += error.message;
+                    }
+                    response.details = details 
+                    reject(error.receipt);
                 });
 
             } catch (error) {
-                reject(new Error(error));
+                reject(error);
             }
         });
         return txPromise;  

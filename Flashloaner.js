@@ -31,8 +31,8 @@ let FLASHLOANER_ADDRESS;
 function getWeb3Instance(_network){
     try {       
         if(!GLOBAL.web3Instance){
-            GLOBAL.web3Instance = new Web3(new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[_network].BLOCKCHAIN_RPC_SERVER_PROVIDER));
-            //GLOBAL.web3Instance.eth.handleRevert = true;
+            GLOBAL.web3Instance = new Web3(new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[_network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER));
+            GLOBAL.web3Instance.eth.handleRevert = true;
         }
     } catch (error) {
         throw new Error("Error to connect to "+_network+" error: "+error);
@@ -46,7 +46,7 @@ async function getCurrentBlock(_network){
         block = await GLOBAL.web3Instance.eth.getBlock("latest");
         blockNumber = block.number;
     } catch (error) {
-        throw new Error("trying to get block, verify connection with " + BlockchainConfig.network[_network].BLOCKCHAIN_RPC_SERVER_PROVIDER);
+        throw new Error("trying to get block, verify connection with " + BlockchainConfig.network[_network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER);
     }
     return blockNumber;
 }
@@ -57,7 +57,7 @@ async function getCurrentGasPriceInGwei(){
         let gasPrice = await GLOBAL.web3Instance.eth.getGasPrice();
         gasPriceInGwei = Web3.utils.fromWei(gasPrice, "gwei");
     } catch (error) {
-        throw new Error("trying to get gas price, verify connection with " + BlockchainConfig.network[_network].BLOCKCHAIN_RPC_SERVER_PROVIDER);
+        throw new Error("trying to get gas price, verify connection with " + BlockchainConfig.network[_network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER);
     }
     return gasPriceInGwei;
 }
@@ -147,7 +147,7 @@ async function showInitInfo(){
     let currentBlock = await getCurrentBlock(GLOBAL.network);
     let gasPriceInGwei = await getCurrentGasPriceInGwei();
     console.log(`\n### ${Util.formatDateTime(new Date())} ###`); 
-    console.log(`### RPC provider: ${BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_SERVER_PROVIDER} ###`); 
+    console.log(`### RPC provider: ${BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER} ###`); 
     console.log(`### blockchain: ${GLOBAL.blockchain} ###`); 
     console.log(`### network: ${GLOBAL.network} | block: ${currentBlock} | last gas price: ${gasPriceInGwei} gwei ###\n`); 
 }
@@ -156,7 +156,7 @@ function setMainGlobalData(_network){
     GLOBAL.network = _network;
     GLOBAL.web3Instance = getWeb3Instance(GLOBAL.network);
     GLOBAL.blockchain = BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN;
-    GLOBAL.RPCprovider = BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_SERVER_PROVIDER;
+    GLOBAL.RPCprovider = BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER;
     GLOBAL.ownerAddress = String(process.env.OWNER_ADDRESS);
     GLOBAL.tokenList = BlockchainConfig.blockchain[GLOBAL.blockchain].tokenList;
     GLOBAL.networkId = BlockchainConfig.blockchain[GLOBAL.blockchain].NETWORK_ID;
@@ -310,24 +310,28 @@ function getERC20(_symbol){
                         //execute flashloan for each file
                         for(let file of resolvedFiles){                 
                             if(file !== undefined){
-                                try {
-                                    //parse flashloan file
-                                    let completeFileName = path.join(directoryPath, file);
-                                    let parsedJson = Files.parseJSONtoOjectList(completeFileName);
-                                    console.log("##### Processing new file: "+file+" #####")
+                                
+                                //parse flashloan file
+                                let completeFileName = path.join(directoryPath, file);
+                                let parsedJson = Files.parseJSONtoOjectList(completeFileName);
+                                console.log("##### Processing new file: "+file+" #####")
+                                
+                                //take old Balance of DAI
+                                let erc20ops = new ERC20ops(GLOBAL);
+                                let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
+
+                                //execute flashloan
+                                let flashloanerOps = new FlashloanerOps(GLOBAL);
+                                if(flashloanerOps.isInputFileOk(parsedJson)){
                                     
-                                    //take old Balance of DAI
-                                    let erc20ops = new ERC20ops(GLOBAL);
-                                    let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
-
-                                    //execute flashloan
-                                    let flashloanerOps = new FlashloanerOps(GLOBAL);
-                                    if(flashloanerOps.isInputFileOk(parsedJson)){
-
-                                        let response = await flashloanerOps.executeFlashloan(parsedJson);
                                         
-                                        //parse response data
-                                        if(response){
+                                    
+                                    let serializedFile
+                                    
+                                    try {
+                                        let flashPromise = flashloanerOps.executeFlashloan(parsedJson);
+                                    
+                                        await flashPromise.then (async (response) =>{
                                                                                     
                                             //calculate transaction cost in ETH
                                             response.txCost = Web3.utils.fromWei(String(response.gasUsed * response.effectiveGasPrice));
@@ -336,24 +340,34 @@ function getERC20(_symbol){
                                             let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
 
                                             //serialize log file with the execution data
-                                            let serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
+                                            serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
                                             console.log("##### Results: #####")
                                             console.log(serializedFile.content.result);
+                                            
+                                            
+                                        }).catch (async (error) => {
+                                            //serialize log file with the error
+                                            serializedFile = await Files.serializeFlashloanResult(error, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, oldDaiBalance);
+                                            console.log("##### Execution failed: #####")
+                                            console.log(error.details);
+                                            
+                                        }).finally ( () => {
                                             
                                             //remove original input file
                                             if(serializedFile){
                                                 //console.log("!!! uncoment to delete original file")
                                                 Files.deleteFile(completeFileName);                        
                                             }
-                                        } else {
-                                            throw("Error: undefined response returned from executeFlashloan function!");
-                                        }
-                                    } else {
-                                        throw("Error: input file is not complete");
-                                    }
-                                } catch (error) {
-                                    console.log(error);
+                                            console.log("### File moved to output folder ###");
+                                        })
+
+                                    } catch (error) {
+                                        console.log(`Error executing flashloan error ${error}`);
+                                    }                                    
+                                } else {
+                                    throw("Error: input file is not complete");
                                 }
+                                
                             }
                         }
                     }
@@ -396,7 +410,7 @@ function getERC20(_symbol){
             console.log("GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
             console.log("flashloan Owner Address: "+ownerFlashloan);
             console.log("DAItokenAddress: "+getERC20("DAI").address);
-            console.log("RPC Provider URL: "+BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_SERVER_PROVIDER);
+            console.log("RPC Provider URL: "+BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER);
             let chainId = await GLOBAL.web3Instance.eth.getChainId()
             console.log("chainId = "+chainId);
         break;        
@@ -490,23 +504,21 @@ function getERC20(_symbol){
                
                result = await uniOps.queryFeeOfBestRoute(100, getERC20("WETH"), getERC20("USDT"), []);
                console.log("best fee found:"+result.bestFee); 
-               //console.log(result.updatedBlacklist); 
-
-
-              /*  console.log("Get amount out 1 WETH -> UNI (0.05)");
-               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.05));
+               
+               console.log("Get amount out 1 WETH -> UNI (0.05)");
+               console.log(await uniOps.queryAmountOut(100, getERC20("WETH"), getERC20("UNI"), 0.05));
                console.log("Get amount out 1 WETH -> UNI (0.3)");
-               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.3));
+               console.log(await uniOps.queryAmountOut(100, getERC20("WETH"), getERC20("UNI"), 0.3));
 
                console.log("Get amount out 1 UNI -> WETH (0.05)");
-               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.05));
+               console.log(await uniOps.queryAmountOut(100, getERC20("UNI"), getERC20("WETH"), 0.05));
 
                console.log("Get amount out 1 UNI -> WETH (0.3)");
-               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.3));
+               console.log(await uniOps.queryAmountOut(100, getERC20("UNI"), getERC20("WETH"), 0.3));
 
                console.log("Get amount out 1 UNI -> WETH (0.01)");
-               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.01));
- */
+               console.log(await uniOps.queryAmountOut(100, getERC20("UNI"), getERC20("WETH"), 0.01));
+ 
 
             } catch (error) {
                 throw (error);
