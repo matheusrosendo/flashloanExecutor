@@ -472,24 +472,12 @@ function getERC20(_symbol){
                console.log("######### Mode 13 | UNISWAPV3 GET AMOUNT OUT FROM BLOCKCHAIN #########");
                let uniOps = new UniswapV3ops(GLOBAL); 
                
-               console.log("Get amount out 1 WETH -> UNI (0.05)");
-               try {
-                
-               } catch (error) {
-                
-               }
-               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.05));
-               console.log("Get amount out 1 WETH -> UNI (0.3)");
-               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.3));
-               console.log("Get amount out 1 WETH -> UNI (0.01)");
-               console.log(await uniOps.queryAmountOut(0.00001, getERC20("WETH"), getERC20("UNI"), 0.01)); 
-
-               console.log("Get amount out 1 UNI -> WETH (0.05)");
-               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.05));
-               console.log("Get amount out 1 UNI -> WETH (0.3)");
-               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.3));
-               console.log("Get amount out 1 UNI -> WETH (0.01)");
-               console.log(await uniOps.queryAmountOut(0.0001, getERC20("UNI"), getERC20("WETH"), 0.01));
+               console.log("Get amount out 1 WETH -> USDT (0.05)");
+               console.log(await uniOps.queryAmountOut(1000, getERC20("WETH"), getERC20("USDT"), 0.05));
+               console.log("Get amount out 1 WETH -> USDT (0.3)");
+               console.log(await uniOps.queryAmountOut(1000, getERC20("WETH"), getERC20("USDT"), 0.3));
+               console.log("Best fee:");
+               console.log(await uniOps.queryFeeOfBestRoute(1000, getERC20("WETH"), getERC20("USDT"))); 
  
 
             } catch (error) {
