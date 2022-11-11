@@ -7,7 +7,7 @@ class ERC20ops {
     constructor (_GLOBAL){
         this.GLOBAL = _GLOBAL;
         //singleton contracts array
-        this.contracts = [];
+        this.contracts = new Array();
     }
 
     /**

@@ -8,20 +8,25 @@ exports.BlockchainConfig = {
 			FORCE_GENERATE_PATH: false
 		}, 
 		EthereumForkUpdate1: {
-			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8001",
-			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY + "@15739206",
+			// comment below to make Arbitrageur use server providers instead of local
+			//BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8001", 
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8001",
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false,
-			ONLY_LOCAL: false,
-			ONLY_SERVER: true
 		},
 		EthereumForkUpdate2: {
-			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8002",
+			// comment below to make Arbitrageur use server providers instead of local
+			//BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8002", 
 			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8002",
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false,
-			ONLY_LOCAL: false,
-			ONLY_SERVER: true
+		},
+		EthereumForkUpdate3: {
+			// comment below to make Arbitrageur use server providers instead of local
+			//BLOCKCHAIN_RPC_LOCAL_PROVIDER: "http://127.0.0.1:8003", 
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8003",
+			BLOCKCHAIN: "ethereum",
+			FORCE_GENERATE_PATH: false,
 		},
 		EthereumForkPast: {
 			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8100",
@@ -35,9 +40,9 @@ exports.BlockchainConfig = {
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false
 		},
-		EthereumAlchemy: {
-			BLOCKCHAIN_RPC_LOCAL_PROVIDER: "https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy",
-			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "https://eth-mainnet.g.alchemy.com/v2/5Mb-roNFwu4Y1uwSjykSuHoC8BYYLABy",
+		EthereumMainnetRPC: {
+			//BLOCKCHAIN_RPC_LOCAL_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
+			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false
 		},
@@ -56,6 +61,8 @@ exports.BlockchainConfig = {
 				process.env.ETHEREUM_RPC_PROVIDER_0,
 				process.env.ETHEREUM_RPC_PROVIDER_1,
 				process.env.ETHEREUM_RPC_PROVIDER_2,
+				process.env.ETHEREUM_RPC_PROVIDER_3,
+				process.env.ETHEREUM_RPC_PROVIDER_4,
 			],
 			FLASHLOAN_ADDRESS: String(process.env.ETHEREUM_FLASHLOAN_ADDRESS),
 			FLASHLOAN_SOURCE: "Dodo",
@@ -132,7 +139,15 @@ exports.BlockchainConfig = {
 					"address": "0x0f5d2fb29fb7d3cfee444a200298f468908cc942",
 					"decimals": 18,
 					"ABI": [{"inputs":[{"internalType":"uint256","name":"chainId_","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"src","type":"address"},{"indexed":true,"internalType":"address","name":"guy","type":"address"},{"indexed":false,"internalType":"uint256","name":"wad","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":true,"inputs":[{"indexed":true,"internalType":"bytes4","name":"sig","type":"bytes4"},{"indexed":true,"internalType":"address","name":"usr","type":"address"},{"indexed":true,"internalType":"bytes32","name":"arg1","type":"bytes32"},{"indexed":true,"internalType":"bytes32","name":"arg2","type":"bytes32"},{"indexed":false,"internalType":"bytes","name":"data","type":"bytes"}],"name":"LogNote","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"src","type":"address"},{"indexed":true,"internalType":"address","name":"dst","type":"address"},{"indexed":false,"internalType":"uint256","name":"wad","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"burn","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"guy","type":"address"}],"name":"deny","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"mint","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"src","type":"address"},{"internalType":"address","name":"dst","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"move","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"holder","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"bool","name":"allowed","type":"bool"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"pull","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"usr","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"push","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"guy","type":"address"}],"name":"rely","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"dst","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"src","type":"address"},{"internalType":"address","name":"dst","type":"address"},{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"version","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"wards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}], 
-				}			
+				},
+				
+				{
+					"name": "Wraped Bitcoin",
+					"isInitial": false,
+					"symbol": "BTC",
+					"address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+					"decimals": 8
+				}		
 			]
 		}, 
 		polygon: {

@@ -58,7 +58,7 @@
       */
      static readFromCSVtoMatrix = (_fileName) => {
          console.log("###### Reading CSV file with the matrix pair prices ######")
-         matrixPrice = [];
+         matrixPrice = new Array();
          const promise = new Promise(function(resolve, reject) {
              try {
                  fs.createReadStream(_fileName)
@@ -83,7 +83,7 @@
       */
      static readMatrixFromCVSfile = async (_file, _tokenListFile) => {
          console.log("###### Reading pair prices matrix CSV file:"+_file+" ######")
-         matrixPrice = [];
+         matrixPrice = new Array();
          const promise = new Promise(function(resolve, reject) {
              try {
                  fs.createReadStream(_file)
@@ -112,7 +112,7 @@
       */
      static readPairReservesFromCVSfile = async (_file, _tokenListFile) => {
          console.log("###### Reading pair prices matrix CSV file:"+_file+" ######")
-         matrixPrice = [];
+         matrixPrice = new Array();
          const promise = new Promise(function(resolve, reject) {
              try {
                  fs.createReadStream(_file)

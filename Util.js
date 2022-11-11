@@ -1,4 +1,5 @@
 const bigdecimal = require("bigdecimal");
+const assert = require('assert');
 class Util {
     
 
@@ -131,11 +132,13 @@ class Util {
      */
       static isBlacklistedUniswapV3(_blacklist, _token1, _token2, _fee){
         let found = false
-        for (let item of _blacklist) {
-            if((item.token1 === _token1 && item.token2 === _token2 && item.fee === _fee)){
-                found = true;
-                break;
-            }
+        if(_blacklist){       
+            for (let item of _blacklist) {
+                if((item.token1 === _token1 && item.token2 === _token2 && item.fee === _fee)){
+                    found = true;
+                    break;
+                }
+            } 
         }
         return found;
     }
@@ -216,6 +219,17 @@ class Util {
             console.log("#### UniswapV3 "+_token1+ " "+_token2+ " fee = "+_fee+ " | blacklisted ####");
         }        
         return _blacklist;
+    }
+
+    /**
+     * Assures any parameter is either truthy or equal to (0 or false)
+     * @param {*} _paramList 
+     */
+    static assertValidInputs(_paramList, _methodName){
+        for(let index in _paramList){
+            let param = _paramList[index]; 
+            assert(param || (param === 0 || param === false), `param ${parseInt(index) + 1} in ${_methodName} is invalid or not defined`);
+        }
     }
 
     /**

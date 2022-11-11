@@ -10,65 +10,69 @@ if(!BlockchainConfig.network[network]){
 	throw new Error("Truffle error: undefined network "+network);
 }
 let RPCprovider = new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER);
-
+let networkCheckTimeout = 1000000000;
+let timeoutBlocks = 10000000;
 
 module.exports = {
 	// See <http://truffleframework.com/docs/advanced/configuration> to customize your Truffle configuration!
 	// contracts_build_directory: path.join(__dirname, "client/src/contracts"),
 	networks: {
-	  development: {
-	    host: "127.0.0.1", 
-		port: 9545,
-	    // gas: 20000000,
-	    network_id: 1,
-	    skipDryRun: true,
-	 },
-	 PolygonFork1: {
-	    host: "127.0.0.1", 
-		port: 8201,
-	    network_id: 137,
-	    skipDryRun: true,	
-		
-		blockchain: "polygon"
-	 },
-	 EthereumForkUpdate1: {
-	    provider: RPCprovider,
-	    network_id: 1,
-	    skipDryRun: true,
-		blockchain: "ethereum",
-		networkCheckTimeout: 1000000000,
-		timeoutBlocks: 10000000
-	 },
-	 EthereumForkPast: {
-	    provider: RPCprovider,
-	    network_id: 1,
-	    skipDryRun: true,
-		blockchain: "ethereum",
-		networkCheckTimeout: 1000000000,
-		timeoutBlocks: 10000000
-	 },
+		development: {
+			host: "127.0.0.1", 
+			port: 9545,
+			// gas: 20000000,
+			network_id: 1,
+			skipDryRun: true,
+		},
+		PolygonFork1: {
+			host: "127.0.0.1", 
+			port: 8201,
+			network_id: 137,
+			skipDryRun: true,	
+			
+			blockchain: "polygon"
+		},
+		EthereumForkUpdate1: {
+			provider: RPCprovider,
+			network_id: 1,
+			skipDryRun: true,
+			blockchain: "ethereum",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
+		EthereumForkUpdate2: {
+			provider: RPCprovider,
+			network_id: 1,
+			skipDryRun: true,
+			blockchain: "ethereum",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
+		EthereumForkUpdate3: {
+			provider: RPCprovider,
+			network_id: 1,
+			skipDryRun: true,
+			blockchain: "ethereum",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
+		EthereumForkPast: {
+			provider: RPCprovider,
+			network_id: 1,
+			skipDryRun: true,
+			blockchain: "ethereum",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
 
-	 EthereumForkSpecBlock: {
-		provider: RPCprovider,
-	    network_id: 1,
-	    skipDryRun: true,
-		blockchain: "ethereum",
-		networkCheckTimeout: 1000000000,
-		timeoutBlocks: 10000000
-	 },
-	  goerli: {
-	    provider: new HDWalletProvider(process.env.OWNER_PK, "https://goerli.infura.io/v3/" + process.env.INFURA_API_KEY),
-	    network_id: 3,
-	    gas: 5000000,
-		gasPrice: 5000000000, // 5 Gwei
-		skipDryRun: true,
-	  },
-	  mainnet: {
-	    provider: new HDWalletProvider(process.env.OWNER_PK, "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY),
-	    network_id: 1,
-	    gas: 5000000,
-	    gasPrice: 5000000000, // 5 Gwei
-	  }
+		EthereumForkSpecBlock: {
+			provider: RPCprovider,
+			network_id: 1,
+			skipDryRun: true,
+			blockchain: "ethereum",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		}
 	},
 	compilers: {
 		solc: {

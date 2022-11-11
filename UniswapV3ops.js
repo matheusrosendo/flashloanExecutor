@@ -113,8 +113,8 @@ class UniswapV3ops {
                 let amountOut = Util.amountFromBlockchain(amountOutWei, _tokenOut.decimals);
                 resolve(amountOut);
             } catch (error) {
-                console.log(`### error on query UniswapV3 ${_tokenIn.symbol} ${_tokenOut.symbol} fee:${_fee} error: ${error} ### `)
-                resolve(0.0);
+                //console.log(`### error on query UniswapV3 ${_tokenIn.symbol} ${_tokenOut.symbol} fee:${_fee} error: ${error} ### `)
+                reject(0.0);
             }
         });
         return txPromise;  
@@ -187,28 +187,38 @@ class UniswapV3ops {
      */
     async queryFeeOfBestRoute(_amountIn, _tokenIn, _tokenOut, _blacklist){
         try {
+            if(!_blacklist){
+                _blacklist = new Array();
+            }
             let possibleFees = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_FEES;
             let bestFee = 0;
             let bestAmountOut = 0;
             for (let fee of possibleFees){
                 let executeQuery = true;
-                if(_blacklist && Util.isBlacklistedUniswapV3(_blacklist, _tokenIn, _tokenOut, fee)){
+                if(_blacklist && Util.isBlacklistedUniswapV3(_blacklist, _tokenIn.symbol, _tokenOut.symbol, fee)){
                     executeQuery = false;
                 }
                 if(executeQuery){
                     try {
                         let pairAddressPool =  await this.getPoolAddress(_tokenIn, _tokenOut, fee);
                         if(pairAddressPool && pairAddressPool != "0x0000000000000000000000000000000000000000"){
-                            let currentAmountOut = await this.queryAmountOut(_amountIn, _tokenIn, _tokenOut, fee);
-                            if(currentAmountOut > bestAmountOut){
-                                bestAmountOut = currentAmountOut;
-                                bestFee = fee;
-                            }
-                        }  
-                    } catch (error) {//in case of error getting amount out adds it in the blacklist and continues
-                        if(_blacklist){
+                            let currentAmountOut = 0.0;
+                            await this.queryAmountOut(_amountIn, _tokenIn, _tokenOut, fee).then(((response) =>{
+                                currentAmountOut = response;
+                            })).catch((reject) =>{
+                                currentAmountOut = reject;
+                                _blacklist = Util.addToBlacklistUniswapV3(_blacklist, _tokenIn.symbol, _tokenOut.symbol, fee); 
+                            }).finally(()=>{
+                                if(currentAmountOut > bestAmountOut){
+                                    bestAmountOut = currentAmountOut;
+                                    bestFee = fee;
+                                }
+                            });                            
+                        }else {
                             _blacklist = Util.addToBlacklistUniswapV3(_blacklist, _tokenIn.symbol, _tokenOut.symbol, fee);
                         }  
+                    } catch (error) {//in case of error getting amount out adds it in the blacklist and continues
+                        _blacklist = Util.addToBlacklistUniswapV3(_blacklist, _tokenIn.symbol, _tokenOut.symbol, fee);  
                     }
                     
                 }                               
