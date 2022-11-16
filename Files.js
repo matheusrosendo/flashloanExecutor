@@ -300,21 +300,22 @@
         try {
             let profit = _newBalance - _oldBalance; 
             //get result data
-            let result = {
-                status: _response.status,
-                details: _response.details,
-                flashloanProtocol: _response.flashloanProtocol,
-                tx: _response.transactionHash,
-                blockNumber: _response.blockNumber,
-                tokenBorrowed: _parsedJson.flashloanInputData.swaps[0].tokenInAddress,
-                oldBalance: _oldBalance,
-                newBalance: _newBalance,
-                profit: profit,
-                gasUsed: _response.gasUsed,
-                txCost: _response.txCost
+            if(_response){            
+                let result = {
+                    status: _response.status,
+                    details: _response.details,
+                    flashloanProtocol: _response.flashloanProtocol,
+                    tx: _response.transactionHash,
+                    blockNumber: _response.blockNumber,
+                    tokenBorrowed: _parsedJson.flashloanInputData.swaps[0].tokenInAddress,
+                    oldBalance: _oldBalance,
+                    newBalance: _newBalance,
+                    profit: profit,
+                    gasUsed: _response.gasUsed,
+                    txCost: _response.txCost
+                }
+                _parsedJson.result = result;
             }
-            _parsedJson.result = result;
-            
             //define new file name and serialize it
             let originalFileArr = _inputFileName.split("\\");
             let originalFileName = originalFileArr[originalFileArr.length-1];

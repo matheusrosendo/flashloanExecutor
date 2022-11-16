@@ -109,18 +109,23 @@ class FlashloanerOps {
                  })
                 .on('error', function(error) {
                     console.log(`### No profit found: ###`);  
-                    let response = error.receipt;
-                    response.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
-                    response.status = "failed";
-                    let details = "";
-                    if(error.reason){
-                        details += error.reason + " \n";
+                    
+                    if (error.receipt){
+                        error.receipt.flashloanProtocol = _parsedJson.flashloanInputData.flashLoanSource;
+                        error.receipt.status = "failed";
+                        let details = "";
+                        if(error.reason){
+                            details += error.reason + " \n";
+                        }
+                        if(error.message){
+                            details += error.message;
+                        }
+                        error.receipt.details = details;
+                        reject(error.receipt);
+                    } else {
+                        reject({status: "failed"});
                     }
-                    if(error.message){
-                        details += error.message;
-                    }
-                    response.details = details 
-                    reject(error.receipt);
+                    
                 });
 
             } catch (error) {
@@ -130,6 +135,7 @@ class FlashloanerOps {
         return txPromise;  
     }
 
+    
     isInputFileOk(_parsedJson){
         let fileOk = true;
         if(!_parsedJson.initialTokenAmount){

@@ -15,7 +15,7 @@ class ERC20ops {
      * @param {*} _erc20 
      * @returns 
      */
-    getERC20instance(_token){
+    getERC20singleton(_token){
         try { 
             assert(_token.address, "Error: undefined token address!");
             if(this.contracts[_token.symbol] == undefined){
@@ -28,6 +28,16 @@ class ERC20ops {
         }
     }
 
+    getERC20instance(_tokenAddress){
+        try { 
+            assert(_tokenAddress, "Error: undefined token address!");
+            let contract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].ERC20_GENERIC_ABI, _tokenAddress, { from: this.GLOBAL.ownerAddress });
+            return contract;      
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+
     async transfer(_erc20, _to, _amount){
         
         //handle response tx
@@ -35,7 +45,7 @@ class ERC20ops {
             try {            
                             
                 //instanctiate erc20 contract
-                let contract = this.getERC20instance(_erc20);
+                let contract = this.getERC20singleton(_erc20);
 
                 //verify current balance
                 let currentTokenBalance = await this.getBalanceOfERC20(_erc20, this.GLOBAL.ownerAddress);
@@ -71,7 +81,7 @@ class ERC20ops {
 
     async getBalanceOfERC20(_token, _address){
         try {
-            let erc20contract = await this.getERC20instance(_token);
+            let erc20contract = await this.getERC20singleton(_token);
             if(erc20contract === undefined){
                 throw ("Error trying to get ERC20instance")
             }
@@ -91,6 +101,23 @@ class ERC20ops {
         }
     }
 
+    async getDecimals(_tokenAddress){
+        try {
+            let erc20contract = await this.getERC20instance(_tokenAddress);
+            if(erc20contract === undefined){
+                throw ("Error trying to get ERC20instance")
+            }
+            let decimals = await erc20contract.methods.decimals().call();
+            
+            if(!decimals){
+                throw (`Error tryng to get decimals of token ${_tokenAddress}`);
+            }
+            return parseInt(decimals);            
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+
     /**
      * Converts WETH back to ETH
      * @param {*} _amount 
@@ -104,7 +131,7 @@ class ERC20ops {
                             
                 //instanctiate erc20 contract
                 let tokenWeth = getItemFromTokenList("symbol", "WETH", this.GLOBAL.tokenList);
-                let wethContract = this.getERC20instance(tokenWeth);
+                let wethContract = this.getERC20singleton(tokenWeth);
                 
                 //approve erc20 contract
                 await this.approve(tokenWeth, wethContract._address, _amount);
@@ -152,7 +179,7 @@ class ERC20ops {
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {  
-                let contractInstance = await this.getERC20instance(_token);
+                let contractInstance = await this.getERC20singleton(_token);
                 let dataApprove = contractInstance.methods.approve(_spender, Util.amountToBlockchain(_amount, _token.decimals)).encodeABI(); 
                 
                 //declare raw tx to approve

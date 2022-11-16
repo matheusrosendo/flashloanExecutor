@@ -7,6 +7,8 @@ const Flashloaner = require("./build/contracts/Flashloaner");
 const Files = require("./Files.js");
 const Util = require("./Util.js");
 const UniswapV3ops = require("./UniswapV3ops.js");
+const UniswapV2ops = require("./UniswapV2ops.js");
+const CurveOps = require("./CurveOps.js");
 const ERC20ops = require("./ERC20ops.js");
 const FlashloanerOps = require("./FlashloanerOps.js");
 const {BlockchainConfig, getItemFromTokenList, GLOBAL} = require("./BlockchainConfig.js");
@@ -171,6 +173,50 @@ function getERC20(_symbol){
     return getItemFromTokenList("symbol", _symbol, GLOBAL.tokenList);
 }
 
+/**
+ * Take a path and make all swaps until the and keeping reserves, prices and slipage
+ * @param {*} _pool3Instance 
+ * @param {*} _path 
+ * @param {*} _initialAmountUSD 
+ * @param {*} _fromLocal 
+ * @returns 
+ */
+ async function verifyAmountOut (_parsedJson){
+    let amountIn = _parsedJson.initialTokenAmount
+    let lastAmount = 0;
+    let curveOps = new CurveOps(GLOBAL);
+    let uniswapV2ops = new UniswapV2ops(GLOBAL);
+    let uniswapV3ops = new UniswapV3ops(GLOBAL);
+    let erc20ops = new ERC20ops(GLOBAL);
+    for(let swap of _parsedJson.flashloanInputData.swaps){
+        if (swap.tokenInAddress !== swap.tokenOutAddress){
+            let tokenInDecimals = await erc20ops.getDecimals(swap.tokenInAddress);
+            let tokenIn = {address: swap.tokenInAddress, decimals: tokenInDecimals};
+            let tokenOutDecimals = await erc20ops.getDecimals(swap.tokenOutAddress);
+            let tokenOut = {address: swap.tokenOutAddress, decimals: tokenOutDecimals};
+            //verify if tokens in and out are diferent 
+        
+            switch (swap.protocolTypeIndex) {
+                case 1: // Curve type
+                    lastAmount = await curveOps.queryAmountOut(amountIn, tokenIn, tokenOut, swap.routerAddress);
+                break;
+                case 2: // UniswapV2 type
+                    lastAmount = await uniswapV2ops.queryAmountOut(amountIn, tokenIn, tokenOut);
+                break;
+                case 3: // UniswapV3 type
+                    lastAmount = await uniswapV3ops.queryAmountOut(amountIn, tokenIn, tokenOut, swap.fee / (10**4));
+                break;
+                default:
+                    throw("invalid protocol type");
+                break;
+            }
+        }
+        amountIn = lastAmount; 
+    }
+
+    return lastAmount;
+}
+
 (async () => {
     console.time('Total Execution Time');    
     console.log("\n######################### START FLASHLOANER EXECUTION #########################");
@@ -316,6 +362,7 @@ function getERC20(_symbol){
                                 let parsedJson = Files.parseJSONtoOjectList(completeFileName);
                                 console.log("##### Processing new file: "+file+" #####")
                                 
+
                                 //take old Balance of DAI
                                 let erc20ops = new ERC20ops(GLOBAL);
                                 let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
@@ -324,43 +371,51 @@ function getERC20(_symbol){
                                 let flashloanerOps = new FlashloanerOps(GLOBAL);
                                 if(flashloanerOps.isInputFileOk(parsedJson)){
                                     
-                                        
-                                    
                                     let serializedFile
-                                    
                                     try {
-                                        let flashPromise = flashloanerOps.executeFlashloan(parsedJson);
-                                    
-                                        await flashPromise.then (async (response) =>{
-                                                                                    
-                                            //calculate transaction cost in ETH
-                                            response.txCost = Web3.utils.fromWei(String(response.gasUsed * response.effectiveGasPrice));
-
-                                            //take new balance of DAI
-                                            let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
-
-                                            //serialize log file with the execution data
-                                            serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
-                                            console.log("##### Results: #####")
-                                            console.log(serializedFile.content.result);
-                                            
-                                            
-                                        }).catch (async (error) => {
-                                            //serialize log file with the error
-                                            serializedFile = await Files.serializeFlashloanResult(error, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, oldDaiBalance);
-                                            console.log("##### Execution failed: #####")
-                                            console.log(error.details);
-                                            
-                                        }).finally ( () => {
-                                            
-                                            //remove original input file
-                                            if(serializedFile){
-                                                //console.log("!!! uncoment to delete original file")
-                                                Files.deleteFile(completeFileName);                        
+                                        //verify amount out of path first
+                                        let verifiedAmount = await verifyAmountOut(parsedJson);
+                                        if(verifiedAmount < parsedJson.initialTokenAmount){
+                                            let result = {
+                                                status: "not executed",
+                                                details: "verified amount out less than initial amount",
                                             }
-                                            console.log("### File moved to output folder ###");
-                                        })
+                                            parsedJson.result = result;
+                                            console.log(`### FLASHLOAN ABORTED: verified amount out (${Number(verifiedAmount).toFixed(2)}) inferior to initial amount ${parsedJson.initialTokenAmount}} ###`);
+                                            serializedFile = await Files.serializeFlashloanResult(null, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER, process.env.FLASHLOAN_FOLDER_FAILED), oldDaiBalance, oldDaiBalance);
+                                        } else {
 
+                                            //execute flashloan
+                                            let flashPromise = flashloanerOps.executeFlashloan(parsedJson);
+                                        
+                                            await flashPromise.then (async (response) =>{
+                                                                                        
+                                                //calculate transaction cost in ETH
+                                                response.txCost = Web3.utils.fromWei(String(response.gasUsed * response.effectiveGasPrice));
+
+                                                //take new balance of DAI
+                                                let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
+
+                                                //serialize log file with the execution data
+                                                serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
+                                                console.log("##### Results: #####")
+                                                console.log(serializedFile.content.result);
+                                                
+                                                
+                                            }).catch (async (error) => {
+                                                //serialize log file with the error
+                                                serializedFile = await Files.serializeFlashloanResult(error, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER, process.env.FLASHLOAN_FOLDER_FAILED), oldDaiBalance, oldDaiBalance);
+                                                console.log("##### Execution failed: #####")
+                                                console.log(error.details);
+                                                
+                                            })
+                                        }
+                                        //remove original input file
+                                        if(serializedFile){
+                                            //console.log("!!! uncoment to delete original file")
+                                            Files.deleteFile(completeFileName);                        
+                                        }
+                                        console.log("### File moved to output folder ###");
                                     } catch (error) {
                                         console.log(`Error executing flashloan error ${error}`);
                                     }                                    

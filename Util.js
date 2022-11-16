@@ -320,6 +320,10 @@ class Util {
             throw new Error (error); 
         }
     }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
   
 }
 
