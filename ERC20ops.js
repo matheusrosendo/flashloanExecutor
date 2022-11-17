@@ -1,3 +1,8 @@
+/**
+ * used to interact with ERC20 smart contracts
+ * @author Matheus Rosendo
+ */
+
 const {BlockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const Util = require("./Util.js");
 const assert = require('assert');
@@ -13,7 +18,7 @@ class ERC20ops {
     /**
      * Singleton, creates a new web3 instance of a given ERC20 contract if it does not exist yet
      * @param {*} _erc20 
-     * @returns 
+     * @returns ERC20 contract instance
      */
     getERC20singleton(_token){
         try { 
@@ -28,7 +33,12 @@ class ERC20ops {
         }
     }
 
-    getERC20instance(_tokenAddress){
+    /**
+     * create a new instance of the given token address
+     * @param {*} _tokenAddress 
+     * @returns ERC20 Contract Instance
+     */
+    createERC20instance(_tokenAddress){
         try { 
             assert(_tokenAddress, "Error: undefined token address!");
             let contract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].ERC20_GENERIC_ABI, _tokenAddress, { from: this.GLOBAL.ownerAddress });
@@ -38,8 +48,15 @@ class ERC20ops {
         }
     }
 
+    /**
+     * transfer funds from ownerAddress to given _to address
+     * @param {*} _erc20 
+     * @param {*} _to 
+     * @param {*} _amount 
+     * @returns transaction (Promise)
+     */
     async transfer(_erc20, _to, _amount){
-        
+        Util.assertValidInputs([_erc20, _to, _amount], "transfer");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
@@ -79,7 +96,14 @@ class ERC20ops {
         return txPromise;  
     }
 
+    /**
+     * query _token balance of the given _address   
+     * @param {*} _token 
+     * @param {String} _address 
+     * @returns balance (Number) 
+     */
     async getBalanceOfERC20(_token, _address){
+        Util.assertValidInputs([_token, _address], "getBalanceOfERC20");
         try {
             let erc20contract = await this.getERC20singleton(_token);
             if(erc20contract === undefined){
@@ -101,9 +125,15 @@ class ERC20ops {
         }
     }
 
+    /**
+     * get decimals of a given token address
+     * @param {*} _tokenAddress 
+     * @returns decimals (Int)
+     */
     async getDecimals(_tokenAddress){
+        Util.assertValidInputs([_tokenAddress], "getDecimals");
         try {
-            let erc20contract = await this.getERC20instance(_tokenAddress);
+            let erc20contract = await this.createERC20instance(_tokenAddress);
             if(erc20contract === undefined){
                 throw ("Error trying to get ERC20instance")
             }
@@ -121,10 +151,10 @@ class ERC20ops {
     /**
      * Converts WETH back to ETH
      * @param {*} _amount 
-     * @returns 
+     * @returns transaction (Promise)
      */
     async withdrawEthfromWeth(_amount){
-        
+        Util.assertValidInputs([_amount], "withdrawEthfromWeth");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
@@ -172,10 +202,10 @@ class ERC20ops {
     /**
      * Approve ERC20 contract to spend the given amount
      * @param {*} _amount 
-     * @returns 
+     * @returns transaction (Promise)
      */
      async approve(_token, _spender, _amount){
-        
+        Util.assertValidInputs([_token, _spender, _amount], "approve");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {  

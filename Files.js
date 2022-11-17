@@ -1,6 +1,7 @@
 
 /**
- * Files
+ * Used to deal with files
+ * @author Matheus Rosendo
  */
  const fs = require("fs");
  const csvParser =  require("csv-parser");
@@ -12,8 +13,7 @@
      /**
       * Take all tokens on the json token file and fulfill a list 
       * @param {String} _initialToken optional 
-      * @returns list of tokens from json file 
-      * 
+      * @returns list of tokens (Array) 
       */
      static readTokenListFromJsonFile = async (_initialToken, _file) => {
          //console.log("###### Parsing tokens from json file ######")
@@ -53,8 +53,8 @@
  
      
      /**
-      * Read CSV file with a matrix and fullfill an array list
-      * @returns array [][]
+      * Read CSV file with a matrix and fullfill a bidimensional array
+      * @returns matrix (Promise)
       */
      static readFromCSVtoMatrix = (_fileName) => {
          console.log("###### Reading CSV file with the matrix pair prices ######")
@@ -79,7 +79,7 @@
      
      /**
       * Read CSV file with the matrix of all pair token prices and fullfill {matrixPrice}
-      * @returns 
+      * @returns matrix and tokenList (Object)
       */
      static readMatrixFromCVSfile = async (_file, _tokenListFile) => {
          console.log("###### Reading pair prices matrix CSV file:"+_file+" ######")
@@ -108,7 +108,7 @@
  
      /**
       * Read CSV file with the matrix of all pair token prices and fullfill {matrixPrice}
-      * @returns 
+      * @returns matrix and token list (Object)
       */
      static readPairReservesFromCVSfile = async (_file, _tokenListFile) => {
          console.log("###### Reading pair prices matrix CSV file:"+_file+" ######")
@@ -147,18 +147,15 @@
          return {"matrix":parseJSONtoOjectList(_pairReservesfile), "tokenList": parseJSONtoOjectList(_tokenListFile)};
      }
  
-     
-     
+          
      /**
-      * Write a json file for the givem object list
+      * Write a json file for the given object list
       * @param {String} _fileName 
       * @param {Object[]} _tokenList 
       * @returns 
       */
      static async serializeObjectListToJson(_fileName, _objectList){
-         assert(_fileName, "Error: _fileName is not fulfilled!");
-         assert(_objectList, "Error: _objectList is not fulfilled!");
-     
+         Util.assertValidInputs([_fileName, _objectList], "serializeObjectListToJson");
          console.log("###### Writing object list to JSON file:"+_fileName+" ######")
          
          let reservesPromise = new Promise((resolve, reject) =>{
@@ -176,14 +173,13 @@
      }
 
     /**
-     * Write a json file for the givem object list
+     * Write a json file for the given object list
      * @param {String} _fileName 
      * @param {Object[]} _tokenList 
-     * @returns 
+     * @returns Promise
      */
     static serializeObjectListToJsonPromise(_fileName, _objectList){
-        assert(_fileName, "Error: _fileName is not fulfilled!");
-        assert(_objectList, "Error: _objectList is not fulfilled!");
+        Util.assertValidInputs([_fileName, _objectList], "serializeObjectListToJsonPromise");
     
         console.log("###### Writing object list to JSON file:"+_fileName+" ######")
         
@@ -227,7 +223,7 @@
      /**
       * Fill a object list from a json file 
       * @param {*} _file 
-      * @returns 
+      * @returns object list (Object[])
       */
      static parseJSONtoOjectList(_file){
          let objList;
@@ -241,9 +237,9 @@
      }
  
      /**
-      * Fill a object list from a json file 
+      * Verifies if _file exists
       * @param {*} _file 
-      * @returns 
+      * @returns bool
       */
       static fileExists(_file){
          let fileFound = false;
@@ -258,7 +254,7 @@
      }
  
      /**
-      * delete given file 
+      * Delete given file 
       */
      static deleteFile(_fileName){
          if (fs.existsSync(_fileName)) {
@@ -269,9 +265,9 @@
      }
  
      /**
-      * search for files on the given folder name passed as parameter
+      * Search for files on the given folder name passed as parameter
       * @param {*} _folderPath 
-      * @returns 
+      * @returns file names list (String[])
       */
       static listFiles(_folderPath){
          let filesNames;
@@ -292,11 +288,11 @@
      * @param {*} _parsedJson 
      * @param {*} _inputFileName 
      * @param {*} _outputFolder 
-     * @returns 
+     * @returns serialized file (Object)
      */ 
     static async serializeFlashloanResult(_response, _parsedJson, _inputFileName, _outputFolder, _oldBalance, _newBalance){
+        Util.assertValidInputs([_parsedJson, _inputFileName, _outputFolder], "serializeFlashloanResult");
         let serializedFile;
-
         try {
             let profit = _newBalance - _oldBalance; 
             //get result data

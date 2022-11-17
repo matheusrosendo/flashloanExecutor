@@ -1,3 +1,8 @@
+/**
+ * used to interact with the Flashloaner smart contract
+ * @author matheus rosendo
+ */
+
 const {BlockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const Util = require("./Util.js");
 const assert = require('assert');
@@ -14,12 +19,13 @@ class FlashloanerOps {
     }
 
     /**
-     * withdraw all balance of a Token 
+     * Withdraw all balance of informed _token 
      * @param {*} _amount 
-     * @returns 
+     * @returns transaction (Promise)
      */
     async withdrawToken(_token){
-        
+        Util.assertValidInputs([_token], "withdrawToken");
+
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
@@ -58,8 +64,13 @@ class FlashloanerOps {
     }
 
    
-
+    /**
+     * Executes flashloan 
+     * @param {*} _parsedJson input flashloan data
+     * @returns transaction (Promise)
+     */
     executeFlashloan (_parsedJson){
+        Util.assertValidInputs([_parsedJson], "executeFlashloan");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
@@ -135,7 +146,11 @@ class FlashloanerOps {
         return txPromise;  
     }
 
-    
+    /**
+     * Verifies input flashloan data
+     * @param {*} _parsedJson 
+     * @returns checked (bool)
+     */
     isInputFileOk(_parsedJson){
         let fileOk = true;
         if(!_parsedJson.initialTokenAmount){

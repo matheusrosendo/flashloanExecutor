@@ -19,7 +19,7 @@ exports.BlockchainConfig = {
 			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8001",
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false,
-			RPC_PROVIDER_INDEX: 1
+			RPC_PROVIDER_INDEX: 0
 		},
 		EthereumForkUpdate2: {
 			// comment below to make Arbitrageur use server providers instead of local
@@ -27,6 +27,7 @@ exports.BlockchainConfig = {
 			BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8002",
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false,
+			RPC_PROVIDER_INDEX: 1
 		},
 		EthereumForkUpdate3: {
 			// comment below to make Arbitrageur use server providers instead of local

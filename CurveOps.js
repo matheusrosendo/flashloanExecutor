@@ -1,3 +1,8 @@
+/**
+ * used to interact with Curve smart contracts
+ * @author Matheus Rosendo
+ */
+
 const {BlockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const Util = require("./Util.js");
 const ERC20ops = require("./ERC20ops.js");
@@ -8,10 +13,14 @@ class CurveOps {
         this.GLOBAL = _GLOBAL;
     }
 
-    getNetwork(){
-        return this.GLOBAL.network;
-    }
-
+    /**
+     * query amount out of given token in and amount in on curve pool3
+     * @param {*} _amountIn 
+     * @param {*} _tokenIn 
+     * @param {*} _tokenOut 
+     * @param {*} _times 
+     * @returns 
+     */
     queryAmountOut(_amountIn, _tokenIn, _tokenOut, _times = 6){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
@@ -51,10 +60,7 @@ class CurveOps {
 
     /**
      * Queries balance of given token on pool3 contract on curve
-     * @param {*} _pool3Instance 
-     * @param {*} _indexIn 
-     * @param {*} _indexOut 
-     * @param {*} _amountInWei 
+     * @param {*} _tokenIn
      * @returns 
      */
      queryBalanceOf (_tokenIn){

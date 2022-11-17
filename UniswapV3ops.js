@@ -1,3 +1,8 @@
+/**
+ * used to interact with Uniswap V3 smart contracts
+ * @author matheus rosendo
+ */
+
 const {BlockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const Util = require("./Util.js");
 const ERC20ops = require("./ERC20ops.js");
@@ -7,76 +12,16 @@ class UniswapV3ops {
         this.GLOBAL = _GLOBAL;
     }
 
-    getNetwork(){
-        return this.GLOBAL.network;
-    }
-
-    exchangeWETHbyDAI(_amount, _owner){
+    /**
+     * get pool address for the given tokenIn, tokenOut and fee
+     * @param {*} _tokenIn 
+     * @param {*} _tokenOut 
+     * @param {*} _fee 
+     * @returns address (Promise)
+     */    
+    getPoolAddress(_tokenIn, _tokenOut, _fee){
         //handle response tx
-        let txPromise = new Promise(async (resolve, reject) =>{ 
-            try {            
-                //instanciate router contract
-                let swapRouterAddress = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_ROUTER_ADDRESS;
-                let swapRouterContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_ROUTER_ABI, swapRouterAddress, { from: this.GLOBAL.ownerAddress });
-                
-                //extract params
-                let tokenIn = getItemFromTokenList("symbol", "WETH", this.GLOBAL.tokenList).address;
-                let tokenOut = getItemFromTokenList("symbol", "DAI", this.GLOBAL.tokenList).address;
-                let fee = 3000;
-                let amountInWei = Util.amountToBlockchain(_amount);
-
-                //aprove swap
-                let erc20ops = new ERC20ops(this.GLOBAL);
-                await erc20ops.approve(getItemFromTokenList("symbol", "WETH", this.GLOBAL.tokenList), swapRouterAddress, _amount);
-
-                //define params
-                const swapParams = {
-                    tokenIn: tokenIn,
-                    tokenOut: tokenOut,
-                    fee: fee,
-                    recipient: this.GLOBAL.ownerAddress,
-                    deadline: Math.floor(Date.now() / 1000) + (60 * 10),
-                    amountIn: amountInWei,
-                    amountOutMinimum: 0,
-                    sqrtPriceLimitX96: 0,
-                }
-               
-                //encode method 
-                let dataSwap = swapRouterContract.methods.exactInputSingle(swapParams).encodeABI(); 
-                    
-                //declare raw tx to withdraw
-                let rawSwapTx = {
-                    from: this.GLOBAL.ownerAddress, 
-                    to: swapRouterAddress,
-                    maxFeePerGas: 100000000000,
-                    data: dataSwap
-                };
-
-                //sign tx
-                let signedWithdrawTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawSwapTx, this.GLOBAL.ownerAddress);  
-                
-                //send signed transaction
-                let withdrawTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction);
-                withdrawTx.on("receipt", (receipt) => {
-                    console.log(`### ${_amount} WETH exchanged by DAI successfully: ###`);  
-                    console.log(`### tx: ${receipt.transactionHash} ###`);                                          
-                    resolve(receipt);
-                });
-                withdrawTx.on("error", (err) => {
-                    console.log("### Exchange tx error: ###");
-                    reject(new Error(err));
-                }); 
-
-            } catch (error) {
-                reject(new Error(error));
-            }
-        });
-        return txPromise;  
-    } 
-
-    
-     getPoolAddress(_tokenIn, _tokenOut, _fee){
-        //handle response tx
+        Util.assertValidInputs([_tokenIn, _tokenOut, _fee], "getPoolAddress");
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {  
                 let feeBip = _fee * (10**4);          
@@ -98,9 +43,10 @@ class UniswapV3ops {
      * @param {*} _tokenIn 
      * @param {*} _tokenOut 
      * @param {*} _fee 
-     * @returns 
+     * @returns transaction (Promise)
      */
      queryAmountOut(_amountIn, _tokenIn, _tokenOut, _fee, _times = 6){
+        Util.assertValidInputs([_amountIn, _tokenIn, _tokenOut, _fee], "queryAmountOut");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             let totalTimes = new Array(_times).fill(1);
@@ -137,8 +83,14 @@ class UniswapV3ops {
         return txPromise;  
     } 
 
+    /**
+     * query token0 of the pool contract
+     * @param {*} _poolAddress 
+     * @returns address (Promise)
+     */
     getToken0AddressFromPool(_poolAddress){
         //handle response tx
+        Util.assertValidInputs([_poolAddress], "getToken0AddressFromPool")
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {   
                 let poolV3Abi = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_POOL;         
@@ -158,7 +110,7 @@ class UniswapV3ops {
      * @param {*} _tokenIn 
      * @param {*} _tokenOut 
      * @param {*} _fee 
-     * @returns 
+     * @returns amount out (Number)
      */
     async getAmountOut(_amount, _tokenIn, _tokenOut, _fee){
         let feeBip = _fee * (10**4);
@@ -208,15 +160,16 @@ class UniswapV3ops {
 
     
     /**
-     * execute query if blacklist not informed or the set {_tokenIn, _tokenOut, fee} is not contained in blacklist
+     * Execute query if blacklist not informed or the set {_tokenIn, _tokenOut, fee} is not contained in blacklist
      * if blacklist is informed, it will be updated for each invalid / unexistent set {_tokenIn, _tokenOut, fee}  
      * @param {*} _amountIn 
      * @param {*} _tokenIn 
      * @param {*} _tokenOut 
      * @param {*} _blacklist 
-     * @returns best fee of uniswap v3 route between tokenIn and tokenOut
+     * @returns best fee of uniswap v3 route between tokenIn and tokenOut, and updated blacklist (Object)
      */
     async queryFeeOfBestRoute(_amountIn, _tokenIn, _tokenOut, _blacklist){
+        Util.assertValidInputs([_amountIn, _tokenIn, _tokenOut], "queryFeeOfBestRoute")
         try {
             if(!_blacklist){
                 _blacklist = new Array();
@@ -259,11 +212,11 @@ class UniswapV3ops {
             throw new Error(error);
         }
     }
-    
+
     /**
      * used to calculate price locally
      * @param {*} _poolAddress 
-     * @returns 
+     * @returns slot0 (Promise)
      */
     getSlot0FromPool(_poolAddress){
         //handle response tx
@@ -287,7 +240,7 @@ class UniswapV3ops {
      * @param {*} _tokenIn 
      * @param {*} _tokenOut 
      * @param {*} _fee 500, 1000 or 3000 => 0.05%, 0.1%, 0.3%
-     * @returns 
+     * @returns transaction (Promise)
      */
     async swap(_amount, _tokenIn, _tokenOut, _fee){
         //handle response tx
