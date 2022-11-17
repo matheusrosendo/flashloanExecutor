@@ -21,14 +21,15 @@ class CurveOps {
      * @param {*} _times 
      * @returns 
      */
-    queryAmountOut(_amountIn, _tokenIn, _tokenOut, _times = 6){
+    queryAmountOut(_routerAddress, _amountIn, _tokenIn, _tokenOut, _times = 6){
+        Util.assertValidInputs([_routerAddress, _amountIn, _tokenIn, _tokenOut], "queryAmountOut");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             let totalTimes = new Array(_times).fill(1);
             for (let shot in totalTimes){
                 try {    
                     let amountInWei = Util.amountToBlockchain(_amountIn, _tokenIn.decimals);
-                    let pool3Contract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].CURVE_POOL3_ABI, BlockchainConfig.blockchain[this.GLOBAL.blockchain].CURVE_POOL3_ADDRESS, { from: this.GLOBAL.ownerAddress });
+                    let pool3Contract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].CURVE_POOL3_ABI, _routerAddress, { from: this.GLOBAL.ownerAddress });
                     let tokenInPool3Index = BlockchainConfig.blockchain[this.GLOBAL.blockchain].CURVE_STABLECOINS_POOL3.indexOf(_tokenIn.address);
                     let tokenOutPool3Index = BlockchainConfig.blockchain[this.GLOBAL.blockchain].CURVE_STABLECOINS_POOL3.indexOf(_tokenOut.address);
                     assert(tokenInPool3Index >= 0, "token in not found in pool2 index list in blockchainconfig");
@@ -63,11 +64,11 @@ class CurveOps {
      * @param {*} _tokenIn
      * @returns 
      */
-     queryBalanceOf (_tokenIn){
+     queryBalanceOf (_poolAddress, _tokenIn){
         let txPromise = new Promise(async (resolve, reject) =>{ 
         try {
             assert(_tokenIn.pool3index != undefined, "Error: pool3index not found on token properties!");
-            let pool3Contract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].CURVE_POOL3_ABI, BlockchainConfig.blockchain[this.GLOBAL.blockchain].CURVE_POOL3_ADDRESS, { from: this.GLOBAL.ownerAddress });
+            let pool3Contract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].CURVE_POOL3_ABI, _poolAddress, { from: this.GLOBAL.ownerAddress });
             let balanceWei = await  pool3Contract.methods.balances(_tokenIn.pool3index).call()     
                        
             let balance = Util.amountFromBlockchain(balanceWei, _tokenIn.decimals);

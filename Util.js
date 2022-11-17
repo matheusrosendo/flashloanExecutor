@@ -223,7 +223,7 @@ class Util {
 
     /**
      * Assures any parameter is either truthy or equal to (0 or false)
-     * @param {*} _paramList 
+     * @param {[]} _paramList 
      */
     static assertValidInputs(_paramList, _methodName){
         for(let index in _paramList){

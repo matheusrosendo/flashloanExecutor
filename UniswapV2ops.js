@@ -20,15 +20,15 @@ class UniswapV2ops {
      * @param {*} _times 
      * @returns amount out (Promise)
      */
-    async queryAmountOut(_amountIn, _tokenIn, _tokenOut, _times = 6){
-        Util.assertValidInputs([_amountIn, _tokenIn, _tokenOut], "queryAmountOut")
+    async queryAmountOut(_routerAddress, _amountIn, _tokenIn, _tokenOut, _times = 6){
+        Util.assertValidInputs([_routerAddress, _amountIn, _tokenIn, _tokenOut], "queryAmountOut");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             let totalTimes = new Array(_times).fill(1);
             for (let shot in totalTimes){
                 try {    
                     let amountInWei = Util.amountToBlockchain(_amountIn, _tokenIn.decimals);
-                    let routerContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV2_ROUTER_ABI, BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV2_ROUTER_ADDRESS, { from: this.GLOBAL.ownerAddress });
+                    let routerContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV2_ROUTER_ABI, _routerAddress, { from: this.GLOBAL.ownerAddress });
                     let amountsOutWei = await routerContract.methods.getAmountsOut(amountInWei, [_tokenIn.address, _tokenOut.address]).call();
                     let amountOut = Util.amountFromBlockchain(amountsOutWei[1], _tokenOut.decimals);
                     //inform if it is in the second try and so forth

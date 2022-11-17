@@ -33,7 +33,7 @@ let FLASHLOANER_ADDRESS;
 function getWeb3Instance(_network){
     try {       
         if(!GLOBAL.web3Instance){
-            GLOBAL.web3Instance = new Web3(new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[_network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER));
+            GLOBAL.web3Instance = new Web3(new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[_network].RPC_FLASHLOANER_PROVIDER));
             GLOBAL.web3Instance.eth.handleRevert = true;
         }
     } catch (error) {
@@ -48,7 +48,7 @@ async function getCurrentBlock(_network){
         block = await GLOBAL.web3Instance.eth.getBlock("latest");
         blockNumber = block.number;
     } catch (error) {
-        throw new Error("trying to get block, verify connection with " + BlockchainConfig.network[_network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER);
+        throw new Error("trying to get block, verify connection with " + BlockchainConfig.network[_network].RPC_FLASHLOANER_PROVIDER);
     }
     return blockNumber;
 }
@@ -59,7 +59,7 @@ async function getCurrentGasPriceInGwei(){
         let gasPrice = await GLOBAL.web3Instance.eth.getGasPrice();
         gasPriceInGwei = Web3.utils.fromWei(gasPrice, "gwei");
     } catch (error) {
-        throw new Error("trying to get gas price, verify connection with " + BlockchainConfig.network[_network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER);
+        throw new Error("trying to get gas price, verify connection with " + BlockchainConfig.network[_network].RPC_FLASHLOANER_PROVIDER);
     }
     return gasPriceInGwei;
 }
@@ -149,7 +149,7 @@ async function showInitInfo(){
     let currentBlock = await getCurrentBlock(GLOBAL.network);
     let gasPriceInGwei = await getCurrentGasPriceInGwei();
     console.log(`\n### ${Util.formatDateTime(new Date())} ###`); 
-    console.log(`### RPC provider: ${BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER} ###`); 
+    console.log(`### RPC provider: ${BlockchainConfig.network[GLOBAL.network].RPC_FLASHLOANER_PROVIDER} ###`); 
     console.log(`### blockchain: ${GLOBAL.blockchain} ###`); 
     console.log(`### network: ${GLOBAL.network} | block: ${currentBlock} | last gas price: ${gasPriceInGwei} gwei ###\n`); 
 }
@@ -158,7 +158,7 @@ function setMainGlobalData(_network){
     GLOBAL.network = _network;
     GLOBAL.web3Instance = getWeb3Instance(GLOBAL.network);
     GLOBAL.blockchain = BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN;
-    GLOBAL.RPCprovider = BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER;
+    GLOBAL.RPCprovider = BlockchainConfig.network[GLOBAL.network].RPC_FLASHLOANER_PROVIDER;
     GLOBAL.ownerAddress = String(process.env.OWNER_ADDRESS);
     GLOBAL.tokenList = BlockchainConfig.blockchain[GLOBAL.blockchain].tokenList;
     GLOBAL.networkId = BlockchainConfig.blockchain[GLOBAL.blockchain].NETWORK_ID;
@@ -198,13 +198,13 @@ function getERC20(_symbol){
         
             switch (swap.protocolTypeIndex) {
                 case 1: // Curve type
-                    lastAmount = await curveOps.queryAmountOut(amountIn, tokenIn, tokenOut, swap.routerAddress);
+                    lastAmount = await curveOps.queryAmountOut(swap.routerAddress, amountIn, tokenIn, tokenOut);
                 break;
                 case 2: // UniswapV2 type
-                    lastAmount = await uniswapV2ops.queryAmountOut(amountIn, tokenIn, tokenOut);
+                    lastAmount = await uniswapV2ops.queryAmountOut(swap.routerAddress, amountIn, tokenIn, tokenOut);
                 break;
                 case 3: // UniswapV3 type
-                    lastAmount = await uniswapV3ops.queryAmountOut(amountIn, tokenIn, tokenOut, swap.fee / (10**4));
+                    lastAmount = await uniswapV3ops.queryAmountOut(BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS, amountIn, tokenIn, tokenOut, swap.fee / (10**4));
                 break;
                 default:
                     throw("invalid protocol type");
@@ -465,7 +465,7 @@ function getERC20(_symbol){
             console.log("GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
             console.log("flashloan Owner Address: "+ownerFlashloan);
             console.log("DAItokenAddress: "+getERC20("DAI").address);
-            console.log("RPC Provider URL: "+BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER);
+            console.log("RPC Provider URL: "+BlockchainConfig.network[GLOBAL.network].RPC_FLASHLOANER_PROVIDER);
             let chainId = await GLOBAL.web3Instance.eth.getChainId()
             console.log("chainId = "+chainId);
         break;        
@@ -498,6 +498,7 @@ function getERC20(_symbol){
                console.log("######### Mode 12 | UNISWAPV3 GET AMOUNT OUT LOCAL CALC #########");
                let uniOps = new UniswapV3ops(GLOBAL); 
                console.log("Get amount out 1 WETH -> USDC (0.3)");
+               
                let usdcAmountOut = await uniOps.getAmountOut(1, getERC20("WETH"), getERC20("USDC"), 0.3);
                console.log(usdcAmountOut);               
                //console.log("Get amount out 1 WETH -> USDC (0.05)");
@@ -528,9 +529,9 @@ function getERC20(_symbol){
                let uniOps = new UniswapV3ops(GLOBAL); 
                
                console.log("Get amount out 1 WETH -> USDT (0.05)");
-               console.log(await uniOps.queryAmountOut(1000, getERC20("WETH"), getERC20("USDT"), 0.05));
+               console.log(await uniOps.queryAmountOut(BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS, 1000, getERC20("WETH"), getERC20("USDT"), 0.05));
                console.log("Get amount out 1 WETH -> USDT (0.3)");
-               console.log(await uniOps.queryAmountOut(1000, getERC20("WETH"), getERC20("USDT"), 0.3));
+               console.log(await uniOps.queryAmountOut(BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS, 1000, getERC20("WETH"), getERC20("USDT"), 0.3));
                console.log("Best fee:");
                console.log(await uniOps.queryFeeOfBestRoute(1000, getERC20("WETH"), getERC20("USDT"))); 
  
@@ -545,7 +546,7 @@ function getERC20(_symbol){
                console.log("######### Mode 14 | UNISWAPV3 GET FEE of BEST AMOUNT OUT #########");
                let uniOps = new UniswapV3ops(GLOBAL); 
                
-               result = await uniOps.queryFeeOfBestRoute(100, getERC20("WETH"), getERC20("USDT"));
+               result = await uniOps.queryFeeOfBestRoute(BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS, 100, getERC20("WETH"), getERC20("USDT"));
                console.log("best fee found:"+result.bestFee); 
                console.log("blacklist: ");
                console.table(result.updatedBlacklist); 

@@ -45,8 +45,8 @@ class UniswapV3ops {
      * @param {*} _fee 
      * @returns transaction (Promise)
      */
-     queryAmountOut(_amountIn, _tokenIn, _tokenOut, _fee, _times = 6){
-        Util.assertValidInputs([_amountIn, _tokenIn, _tokenOut, _fee], "queryAmountOut");
+     queryAmountOut(_quoterAddress, _amountIn, _tokenIn, _tokenOut, _fee, _times = 6){
+        Util.assertValidInputs([_quoterAddress, _amountIn, _tokenIn, _tokenOut, _fee], "queryAmountOut");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             let totalTimes = new Array(_times).fill(1);
@@ -54,8 +54,7 @@ class UniswapV3ops {
                 try {    
                     let feeBip = _fee * (10**4); 
                     let amountInWei = Util.amountToBlockchain(_amountIn, _tokenIn.decimals);   
-                    let quoterAddress = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS;
-                    let quoterContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ABI, quoterAddress, { from: this.GLOBAL.ownerAddress });
+                    let quoterContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ABI, _quoterAddress, { from: this.GLOBAL.ownerAddress });
                     
                     let amountOutWei = await quoterContract.methods.quoteExactInputSingle(_tokenIn.address, _tokenOut.address, feeBip, amountInWei, 0).call();
                     let amountOut = Util.amountFromBlockchain(amountOutWei, _tokenOut.decimals);
@@ -93,7 +92,7 @@ class UniswapV3ops {
         Util.assertValidInputs([_poolAddress], "getToken0AddressFromPool")
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {   
-                let poolV3Abi = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_POOL;         
+                let poolV3Abi = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_POOL_ABI;         
                 let poolContract = new this.GLOBAL.web3Instance.eth.Contract(poolV3Abi, _poolAddress, { from: this.GLOBAL.ownerAddress });                
                 let token0address = await poolContract.methods.token0().call();
                 resolve(token0address);
@@ -168,8 +167,8 @@ class UniswapV3ops {
      * @param {*} _blacklist 
      * @returns best fee of uniswap v3 route between tokenIn and tokenOut, and updated blacklist (Object)
      */
-    async queryFeeOfBestRoute(_amountIn, _tokenIn, _tokenOut, _blacklist){
-        Util.assertValidInputs([_amountIn, _tokenIn, _tokenOut], "queryFeeOfBestRoute")
+    async queryFeeOfBestRoute(_quoterAddress, _amountIn, _tokenIn, _tokenOut, _blacklist){
+        Util.assertValidInputs([_quoterAddress, _amountIn, _tokenIn, _tokenOut], "queryFeeOfBestRoute")
         try {
             if(!_blacklist){
                 _blacklist = new Array();
@@ -187,7 +186,7 @@ class UniswapV3ops {
                         let pairAddressPool =  await this.getPoolAddress(_tokenIn, _tokenOut, fee);
                         if(pairAddressPool && pairAddressPool != "0x0000000000000000000000000000000000000000"){
                             let currentAmountOut = 0.0;
-                            await this.queryAmountOut(_amountIn, _tokenIn, _tokenOut, fee).then(((response) =>{
+                            await this.queryAmountOut(_quoterAddress, _amountIn, _tokenIn, _tokenOut, fee).then(((response) =>{
                                 currentAmountOut = response;
                             })).catch((reject) =>{
                                 currentAmountOut = reject;
@@ -222,7 +221,7 @@ class UniswapV3ops {
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {      
-                let poolV3Abi = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_POOL;
+                let poolV3Abi = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_POOL_ABI;
                 let poolContract = new this.GLOBAL.web3Instance.eth.Contract(poolV3Abi, _poolAddress, { from: this.GLOBAL.ownerAddress });
                 
                 let slot0 = await poolContract.methods.slot0().call();

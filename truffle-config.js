@@ -9,7 +9,7 @@ let network = mode[mode.length-1];
 if(!BlockchainConfig.network[network]){
 	throw new Error("Truffle error: undefined network "+network);
 }
-let RPCprovider = new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[network].BLOCKCHAIN_RPC_FLASHLOANER_PROVIDER);
+let RPCprovider = new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[network].RPC_FLASHLOANER_PROVIDER);
 let networkCheckTimeout = 1000000000;
 let timeoutBlocks = 10000000;
 
