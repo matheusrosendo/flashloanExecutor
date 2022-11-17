@@ -11,7 +11,7 @@ class UniswapV3ops {
         return this.GLOBAL.network;
     }
 
-    async exchangeWETHbyDAI(_amount, _owner){
+    exchangeWETHbyDAI(_amount, _owner){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
@@ -75,7 +75,7 @@ class UniswapV3ops {
     } 
 
     
-     async getPoolAddress(_tokenIn, _tokenOut, _fee){
+     getPoolAddress(_tokenIn, _tokenOut, _fee){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {  
@@ -100,27 +100,44 @@ class UniswapV3ops {
      * @param {*} _fee 
      * @returns 
      */
-    async queryAmountOut(_amountIn, _tokenIn, _tokenOut, _fee){
+     queryAmountOut(_amountIn, _tokenIn, _tokenOut, _fee, _times = 6){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
-            try {    
-                let feeBip = _fee * (10**4); 
-                let amountInWei = Util.amountToBlockchain(_amountIn, _tokenIn.decimals);   
-                let quoterAddress = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS;
-                let quoterContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ABI, quoterAddress, { from: this.GLOBAL.ownerAddress });
-                
-                let amountOutWei = await quoterContract.methods.quoteExactInputSingle(_tokenIn.address, _tokenOut.address, feeBip, amountInWei, 0).call();
-                let amountOut = Util.amountFromBlockchain(amountOutWei, _tokenOut.decimals);
-                resolve(amountOut);
-            } catch (error) {
-                //console.log(`### error on query UniswapV3 ${_tokenIn.symbol} ${_tokenOut.symbol} fee:${_fee} error: ${error} ### `)
-                reject(0.0);
+            let totalTimes = new Array(_times).fill(1);
+            for (let shot in totalTimes){
+                try {    
+                    let feeBip = _fee * (10**4); 
+                    let amountInWei = Util.amountToBlockchain(_amountIn, _tokenIn.decimals);   
+                    let quoterAddress = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS;
+                    let quoterContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_QUOTER_ABI, quoterAddress, { from: this.GLOBAL.ownerAddress });
+                    
+                    let amountOutWei = await quoterContract.methods.quoteExactInputSingle(_tokenIn.address, _tokenOut.address, feeBip, amountInWei, 0).call();
+                    let amountOut = Util.amountFromBlockchain(amountOutWei, _tokenOut.decimals);
+                    //inform if it is in the second try and so forth
+                    if(parseInt(shot) > 0){
+                        console.log(`##### amount out got it in SHOT ${parseInt(shot)+1} #####`);
+                    }
+                    resolve(amountOut);
+                    break;
+                } catch (error) {
+                    
+                    //alchemy error code for exceeding units per second capacity. 
+                    if ( Util.isAlchemyExceedingError(error)){
+                        let waitTimeInMs = Util.getAlchemyWaitingTime();
+                        console.log(`##### trying to get token0 again in ${Number(waitTimeInMs).toFixed(2)} ms... #####`);
+                        await Util.sleep(waitTimeInMs);
+                    } else {
+                        console.log(`### error on query UniswapV2 ${_tokenIn.address} ${_tokenOut.address} error: ${error} ### `)
+                        reject(0.0);
+                        break
+                    }
+                }
             }
         });
         return txPromise;  
     } 
 
-    async getToken0AddressFromPool(_poolAddress){
+    getToken0AddressFromPool(_poolAddress){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {   
@@ -135,6 +152,14 @@ class UniswapV3ops {
         return txPromise;  
     }
 
+    /**
+     * calculates locally, not used so far
+     * @param {*} _amount 
+     * @param {*} _tokenIn 
+     * @param {*} _tokenOut 
+     * @param {*} _fee 
+     * @returns 
+     */
     async getAmountOut(_amount, _tokenIn, _tokenOut, _fee){
         let feeBip = _fee * (10**4);
         console.log(`feeBip ${feeBip}`);
@@ -165,6 +190,12 @@ class UniswapV3ops {
         }
     }
 
+    /**
+     * Show pool address for the given tokenIn, tokenOut and fee
+     * @param {*} _tokenIn 
+     * @param {*} _tokenOut 
+     * @param {*} _fee 
+     */
     async showPoolAddress(_tokenIn, _tokenOut, _fee){
         try {
             
@@ -228,8 +259,13 @@ class UniswapV3ops {
             throw new Error(error);
         }
     }
-
-    async getSlot0FromPool(_poolAddress){
+    
+    /**
+     * used to calculate price locally
+     * @param {*} _poolAddress 
+     * @returns 
+     */
+    getSlot0FromPool(_poolAddress){
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {      

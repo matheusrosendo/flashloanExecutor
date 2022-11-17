@@ -321,8 +321,16 @@ class Util {
         }
     }
 
-    sleep(ms) {
+    static sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    static isAlchemyExceedingError(error){
+        return (error.code && error.code == 429) || (error.message && error.message.search("exceeded") > -1);
+    }
+
+    static getAlchemyWaitingTime(){
+        return 1000 + (Math.random() * 250);
     }
   
 }
