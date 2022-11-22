@@ -258,7 +258,7 @@ class UniswapV3ops {
                 //extract params
                 let tokenIn = _tokenIn.address;
                 let tokenOut = _tokenOut.address;
-                let fee = _fee;
+                let fee = _fee * (10**4);
                 let amountInWei = Util.amountToBlockchain(_amount);
 
                 //aprove swap
@@ -271,7 +271,7 @@ class UniswapV3ops {
                     tokenOut: tokenOut,
                     fee: fee,
                     recipient: this.GLOBAL.ownerAddress,
-                    deadline: Math.floor(Date.now() / 1000) + (60 * 10),
+                    deadline: Math.floor(Date.now() / 1000) + (600 * 10),
                     amountIn: amountInWei,
                     amountOutMinimum: 0,
                     sqrtPriceLimitX96: 0,

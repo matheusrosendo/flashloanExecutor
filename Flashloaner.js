@@ -11,7 +11,7 @@ const UniswapV2ops = require("./UniswapV2ops.js");
 const CurveOps = require("./CurveOps.js");
 const ERC20ops = require("./ERC20ops.js");
 const FlashloanerOps = require("./FlashloanerOps.js");
-const {BlockchainConfig, getItemFromTokenList, GLOBAL} = require("./BlockchainConfig.js");
+const {BlockchainConfig, getItemFromTokenList, getInitialTokenSymbol, GLOBAL} = require("./BlockchainConfig.js");
 const { get } = require("http");
 const Spot = require('@binance/connector/src/spot')
 const HDWalletProvider = require("@truffle/hdwallet-provider")
@@ -116,7 +116,7 @@ async function sendEth(_from, _to, _amount){
             let sentTx = getWeb3Instance().eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
             
             sentTx.on("receipt", (receipt) => {
-                console.log(`### ${_amount} ETH sent successfully: ###`);
+                console.log(`### ${_amount} ${getMainCrypto()} sent successfully: ###`);
                 resolve(receipt);
             });
             sentTx.on("error", (err) => {
@@ -131,12 +131,13 @@ async function sendEth(_from, _to, _amount){
 }
 
 async function showBalances(_address){
-    let balanceETH = await GLOBAL.web3Instance.eth.getBalance(_address);
-    console.log("ETH: " + Web3.utils.fromWei(balanceETH));
+    let balanceMainCrypto = await GLOBAL.web3Instance.eth.getBalance(_address);
+    console.log(`${getMainCrypto()}: ${Web3.utils.fromWei(balanceMainCrypto)} `);
 
     let erc20ops = new ERC20ops(GLOBAL);     
-    let balanceWETH = await erc20ops.getBalanceOfERC20(getERC20("WETH"), _address);
-    console.log(`WETH: ${balanceWETH}`);
+    let symbolWrapped = getWrappedMainCrypto();
+    let balanceWrappedMainCrypto = await erc20ops.getBalanceOfERC20(getERC20(symbolWrapped), _address);
+    console.log(`${symbolWrapped}: ${balanceWrappedMainCrypto}`);
     let balanceDAI = await erc20ops.getBalanceOfERC20(getERC20("DAI"), _address);
     console.log(`DAI: ${balanceDAI}`);
     let balanceUSDT = await erc20ops.getBalanceOfERC20(getERC20("USDT"), _address);
@@ -217,6 +218,35 @@ function getERC20(_symbol){
     return lastAmount;
 }
 
+function getMainCrypto(){
+    if(GLOBAL.blockchain == "ethereum"){
+        return "ETH";
+    } else if (GLOBAL.blockchain == "polygon"){
+        return "MATIC";
+    } else {
+        throw new Error ("blockchain not set in GLOBAL object");
+    }
+}
+
+function getWrappedMainCrypto(){
+    return "W"+getMainCrypto();
+}
+
+function getInitialFundsMainCrypto(){
+    try {
+        
+        if(GLOBAL.blockchain == "ethereum"){
+            return parseInt(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK);
+        } else if (GLOBAL.blockchain == "polygon"){
+            return parseInt(process.env.WMATIC_AMOUNT_INITIAL_FUND_ON_FORK);
+        } else {
+            throw new Error ("blockchain not set in GLOBAL object");
+        }
+    } catch (error) {
+        throw new Error ("initial funds not found on .env file");    
+    }
+}
+
 (async () => {
     console.time('Total Execution Time');    
     console.log("\n######################### START FLASHLOANER EXECUTION #########################");
@@ -248,25 +278,27 @@ function getERC20(_symbol){
     }
      
     switch(mode[0]){
-        case '1': //LOCAL DEV ONLY: exchange some ETH by WETH, then WETH by DAI, and DAI by USDC on UniswapV3
-            try{    
-            console.log("######### Mode 1 | ETH -> WETH | WETH -> DAI | DAI -> USDC #########");
+        case '1': //LOCAL DEV ONLY: exchange some Crypto by Wrapped Crypto, then WCRYPTO by DAI, and DAI by USDC on UniswapV3
+            try{
+                let symbolWrappedMainCrypto = getWrappedMainCrypto();
+                let wrappedMainCrypto = getERC20(symbolWrappedMainCrypto);    
+                console.log(`######### Mode 1 | ${getMainCrypto()} -> ${symbolWrappedMainCrypto} | ${symbolWrappedMainCrypto} -> DAI | DAI -> USDC #########`);
                 //get weth address, to convert eth to weth just send eth to weth contract address, since it has a payable function that calls deposit function inside
-                let amountETH = parseInt(process.env.ETH_AMOUNT_INITIAL_FUND_ON_FORK);
-                let weth9address = getERC20("WETH").address;
-                await sendEth(GLOBAL.ownerAddress, weth9address, amountETH);
+                let amountMainCrypto = getInitialFundsMainCrypto();
+                await sendEth(GLOBAL.ownerAddress, wrappedMainCrypto.address, amountMainCrypto);
 
-                //get WETH balance
+                //get Wrapped crypto balance
                 let erc20ops = new ERC20ops(GLOBAL);
-                let balanceWETH = await erc20ops.getBalanceOfERC20(getERC20("WETH"), GLOBAL.ownerAddress);
+                let balanceWrappedMainCrypto = await erc20ops.getBalanceOfERC20(getERC20(getWrappedMainCrypto()), GLOBAL.ownerAddress);
+                console.log(`initial balance wrapped crypto ${balanceWrappedMainCrypto}`);
 
-                //exchange WETH by DAI
+                //exchange Wrapped crypto by DAI
                 let uniOps = new UniswapV3ops(GLOBAL);
-                await uniOps.swap(balanceWETH, getERC20("WETH"), getERC20("DAI"), 500);
+                await uniOps.swap(balanceWrappedMainCrypto, getERC20(getWrappedMainCrypto()), getERC20("DAI"), 0.05);
 
                 //exchange half of DAI to USDC 
                 let balanceDAI = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
-                await uniOps.swap(balanceDAI/2, getERC20("DAI"), getERC20("USDC"), 100);
+                await uniOps.swap(balanceDAI/2, getERC20("DAI"), getERC20("USDC"), 0.01);
                 console.log("\n### owner balances: ###");
                 await showBalances(GLOBAL.ownerAddress);
             } catch (error) {
@@ -363,18 +395,35 @@ function getERC20(_symbol){
                                 console.log("##### Processing new file: "+file+" #####")
                                 
 
-                                //take old Balance of DAI
+                                //take old Balance of initial token
                                 let erc20ops = new ERC20ops(GLOBAL);
-                                let oldDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
+                                let initialTokenSymbol = getInitialTokenSymbol(parsedJson);
+                                let initialToken = getERC20(initialTokenSymbol)
+                                let oldDaiBalance = await erc20ops.getBalanceOfERC20(initialToken, GLOBAL.ownerAddress);
 
                                 //execute flashloan
                                 let flashloanerOps = new FlashloanerOps(GLOBAL);
-                                if(flashloanerOps.isInputFileOk(parsedJson)){
+                                
+                                let serializedFile;
+
+                                //first verify input file
+                                let verifiedObject = flashloanerOps.isInputFileOk(parsedJson);
+                                if(!verifiedObject.isOk){
+                                    let result = {
+                                        status: "not executed",
+                                        details: verifiedObject.message,
+                                    }
+                                    parsedJson.result = result;
+                                    console.log(`### FLASHLOAN ABORTED: verify input file: ###`);
+                                    console.log(verifiedObject.message);
+                                    serializedFile = await Files.serializeFlashloanResult(null, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER, process.env.FLASHLOAN_FOLDER_FAILED), oldDaiBalance, oldDaiBalance);
+                                } else {
                                     
-                                    let serializedFile
+                                    
                                     try {
                                         //verify amount out of path first
                                         let verifiedAmount = await verifyAmountOut(parsedJson);
+                                        //uncomment below
                                         if(verifiedAmount < parsedJson.initialTokenAmount){
                                             let result = {
                                                 status: "not executed",
@@ -394,7 +443,7 @@ function getERC20(_symbol){
                                                 response.txCost = Web3.utils.fromWei(String(response.gasUsed * response.effectiveGasPrice));
 
                                                 //take new balance of DAI
-                                                let newDaiBalance = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
+                                                let newDaiBalance = await erc20ops.getBalanceOfERC20(initialToken, GLOBAL.ownerAddress);
 
                                                 //serialize log file with the execution data
                                                 serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
@@ -410,24 +459,26 @@ function getERC20(_symbol){
                                                 
                                             })
                                         }
-                                        //remove original input file
-                                        if(serializedFile){
-                                            //console.log("!!! uncoment to delete original file")
-                                            Files.deleteFile(completeFileName);                        
-                                        }
-                                        console.log("### File moved to output folder ###");
+                                        
                                     } catch (error) {
                                         console.log(`Error executing flashloan error ${error}`);
-                                    }                                    
-                                } else {
-                                    throw("Error: input file is not complete");
+                                    }                                   
+                                    
+                                } 
+                                
+                                //remove original input file
+                                if(serializedFile){
+                                    //console.log("!!! uncoment to delete original file")
+                                    Files.deleteFile(completeFileName);                        
                                 }
+                                console.log("### File moved to output folder ###");
+                                
                                 
                             }
                         }
                     }
                 }
-            } catch (error) {
+            } catch (error) {                
                 throw (error);
             }
         
@@ -580,6 +631,17 @@ function getERC20(_symbol){
             console.log("Get amount out 1 USDT -> BTC (0.05)");
             console.log(await uniOps.queryAmountOut(100, getERC20("USDT"), getERC20("BTC"), 0.05));
 
+            } catch (error) {
+                throw (error);
+            }
+        break
+
+        case '16': // get chain ID
+            try { 
+                console.log("######### Mode 16 | chain ID #########");
+                let flashloanerContract = new FlashloanerOps(GLOBAL);            
+                let chainId = await flashloanerContract.getChainId();                        
+                console.log(`chainId: ${chainId}`);
             } catch (error) {
                 throw (error);
             }

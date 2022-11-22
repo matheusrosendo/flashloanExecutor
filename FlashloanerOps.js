@@ -63,6 +63,23 @@ class FlashloanerOps {
         return txPromise;  
     }
 
+
+    /**
+     * returns chain id 
+     * @param {*} _amount 
+     * @returns transaction (Promise)
+     */
+     async getChainId(){
+        
+        try {
+            
+            let chainId = await this.contractInstance.methods.getChainId().call();
+            return chainId;            
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+
    
     /**
      * Executes flashloan 
@@ -149,47 +166,59 @@ class FlashloanerOps {
     /**
      * Verifies input flashloan data
      * @param {*} _parsedJson 
-     * @returns checked (bool)
+     * @returns Object 
      */
     isInputFileOk(_parsedJson){
-        let fileOk = true;
+        let isOk = true;
+        let message = "Verified";
         if(!_parsedJson.initialTokenAmount){
-            throw new Error("field initialTokenAmount not found in input file");
+            message = "field initialTokenAmount not found in input file";
+            return {isOk: false, message: message};
         }
         if(!_parsedJson.initialTokenDecimals){
-            throw new Error("field initialTokenDecimals not found in input file");
+            message = "field initialTokenDecimals not found in input file";
+            return {isOk: false, message: message};
         }        
         if(!_parsedJson.flashloanInputData){
-            throw new Error("field flashloanInputData not found in input file");
+            message = "field flashloanInputData not found in input file";
+            return {isOk: false, message: message};
         }
         if(!_parsedJson.flashloanInputData.flashLoanSource){
-            throw new Error("field flashLoanSource not found in input file");
+            message = "field flashLoanSource not found in input file";
+            return {isOk: false, message: message};
         }
         if(!_parsedJson.flashloanInputData.flashLoanPool){
-            throw new Error("field flashLoanPool not found in input file");
+            message = "field flashLoanPool not found in input file";
+            return {isOk: false, message: message};
         }
         if(!_parsedJson.flashloanInputData.swaps){
-            throw new Error("field _parsedJson.flashloanInputData.swaps not found in input file");
+            message = "field _parsedJson.flashloanInputData.swaps not found in input file";
+            return {isOk: false, message: message};
         }
         if(_parsedJson.flashloanInputData.swaps.length == 0){
-            throw new Error("at least one swap must be in the flashloanInputData.swaps list in input file");
+            message = "at least one swap must be in the flashloanInputData.swaps list in input file";
+            return {isOk: false, message: message};
         }
         //vefify fees addressesss 
         for (let swap of _parsedJson.flashloanInputData.swaps){
             if (!this.GLOBAL.web3Instance.utils.isAddress(swap.routerAddress)){
-                throw new Error("invalid address found: routerAddress");
+                message = "invalid address found: routerAddress";
+                return {isOk: false, message: message};
             }
             if (!this.GLOBAL.web3Instance.utils.isAddress(swap.tokenInAddress)){
-                throw new Error("invalid address found: tokenInAddress");
+                message = "invalid address found: tokenInAddress";
+                return {isOk: false, message: message};
             }
             if (!this.GLOBAL.web3Instance.utils.isAddress(swap.tokenOutAddress)){
-                throw new Error("invalid address found: tokenOutAddress");
+                message = "invalid address found: tokenOutAddress";
+                return {isOk: false, message: message};
             }
             if(!swap.fee){
-                throw new Error("invalid fee found");
+                message = "invalid fee found";
+                return {isOk: false, message: message};
             }
         }
-        return fileOk;
+        return {isOk: true, message: message};
     }
     
 }

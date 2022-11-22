@@ -24,13 +24,29 @@ module.exports = {
 			network_id: 1,
 			skipDryRun: true,
 		},
-		PolygonFork1: {
-			host: "127.0.0.1", 
-			port: 8201,
+		PolygonForkUpdate1: {
+			provider: RPCprovider,
 			network_id: 137,
-			skipDryRun: true,	
-			
-			blockchain: "polygon"
+			skipDryRun: true,
+			blockchain: "polygon",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
+		PolygonForkUpdate2: {
+			provider: RPCprovider,
+			network_id: 137,
+			skipDryRun: true,
+			blockchain: "polygon",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
+		PolygonForkUpdate3: {
+			provider: RPCprovider,
+			network_id: 137,
+			skipDryRun: true,
+			blockchain: "polygon",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
 		},
 		EthereumForkUpdate1: {
 			provider: RPCprovider,

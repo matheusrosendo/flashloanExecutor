@@ -13,13 +13,14 @@ import {FlashLoanReceiverBase, ILendingPoolAddressesProvider, ILendingPool} from
 
 contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
     using SafeERC20 for IERC20;
+    uint networkId;
     
     enum ProtocolType{ UNISWAP_V2, CURVE_V1, UNISWAP_V3}
     mapping(uint8 => ProtocolType) protocolTypes;
     mapping(address => int128) stableCoinsPool3; //used by curve swaps only
     event LoggerNewAllowance(uint increasedAmount, address token, address router);
 
-    constructor()  {
+    constructor(address[] memory _stablecoins, uint _networkId)  {
         
         //set protocol types
         protocolTypes[1] = ProtocolType.CURVE_V1;
@@ -27,9 +28,11 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
         protocolTypes[3] = ProtocolType.UNISWAP_V3;
 
         //sets DAI, USDC and USDT addresses on ethereum mainnet
-        stableCoinsPool3[0x6B175474E89094C44Da98b954EedeAC495271d0F] = 0;
-        stableCoinsPool3[0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48] = 1;
-        stableCoinsPool3[0xdAC17F958D2ee523a2206206994597C13D831ec7] = 2;   
+        stableCoinsPool3[_stablecoins[0]] = 0;
+        stableCoinsPool3[_stablecoins[1]] = 1;
+        stableCoinsPool3[_stablecoins[2]] = 2; 
+
+        networkId = _networkId;  
     }
 
 
@@ -344,8 +347,13 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
         //check allowance
         setAllowance(_amountTokenIn, _tokenIn, _exchangeRouter); 
 
-        //execute swap
-        curvePool.exchange(stableCoinsPool3[_tokenIn], stableCoinsPool3[_tokenOut], _amountTokenIn, 1);
+        //execute swap, Polygon uses exchange_underlying, while Ethereum uses exchange
+        if(networkId == 1){
+            curvePool.exchange(stableCoinsPool3[_tokenIn], stableCoinsPool3[_tokenOut], _amountTokenIn, 1);
+        } else {
+            curvePool.exchange_underlying(stableCoinsPool3[_tokenIn], stableCoinsPool3[_tokenOut], _amountTokenIn, 1);
+        }
+        
 
         //calculate and return amount out
         uint tokenOutNewBalance = balanceOfToken(_tokenOut); 
