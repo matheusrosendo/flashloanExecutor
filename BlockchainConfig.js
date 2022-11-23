@@ -5,7 +5,7 @@ exports.BlockchainConfig = {
 			RPC_ARBITRAGEUR_PROVIDER: "http://127.0.0.1:8101",
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8101",			
 			BLOCKCHAIN: "ethereum",
-			FORCE_GENERATE_PATH: false
+			FORCE_GENERATE_PATH: true
 		}, 
 		EthereumForkPast: {
 			RPC_ARBITRAGEUR_PROVIDER: "http://127.0.0.1:8100",
@@ -14,10 +14,9 @@ exports.BlockchainConfig = {
 			FORCE_GENERATE_PATH: false
 		}, 
 		EthereumForkUpdate1: {
-			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_0,
+			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8001",			
-			BLOCKCHAIN: "ethereum",
-			FORCE_GENERATE_PATH: true		
+			BLOCKCHAIN: "ethereum",		
 		},
 		EthereumForkUpdate2: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
@@ -27,26 +26,24 @@ exports.BlockchainConfig = {
 		EthereumForkUpdate3: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8003",
-			BLOCKCHAIN: "ethereum",
+			BLOCKCHAIN: "ethereum",			
 		},
 
 		PolygonForkUpdate1: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8201",
-			BLOCKCHAIN: "polygon",
-			FORCE_GENERATE_PATH: true	
+			BLOCKCHAIN: "polygon",	
 		},
 		PolygonForkUpdate2: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
-			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8203",
-			BLOCKCHAIN: "polygon",
-			FORCE_GENERATE_PATH: true	
+			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8202",
+			BLOCKCHAIN: "polygon",	
 		},
 		PolygonForkUpdate3: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8203",
-			BLOCKCHAIN: "polygon",
-			FORCE_GENERATE_PATH: true	
+			BLOCKCHAIN: "polygon",	
+			FORCE_GENERATE_PATH: true
 		},
 		
 		EthereumMainnet: {
@@ -54,15 +51,19 @@ exports.BlockchainConfig = {
 			RPC_FLASHLOANER_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false
-		}		
+		},
+		PolygonMainnet1: {
+			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
+			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
+			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8300",
+			BLOCKCHAIN: "polygon",
+		}	
 	},
 	blockchain: {
 		ethereum: {
 			NETWORK_ID: 1,
 			EXPLORER: "http://etherscan.io/address/",
 			
-			//DODO flashloan data
-			FLASHLOAN_ADDRESS: String(process.env.ETHEREUM_FLASHLOAN_ADDRESS),
 			FLASHLOAN_SOURCE: "Dodo",
 			FLASHLOAN_POOL_ADDRESS: "0x3058EF90929cb8180174D74C507176ccA6835D73",
 			
@@ -163,12 +164,13 @@ exports.BlockchainConfig = {
 			NETWORK_ID: 137,
 			EXPLORER: "http://polygonscan.com/address/",
 			
-			//DODO flashloan data
-			FLASHLOAN_ADDRESS: String(process.env.POLYGON_FLASHLOAN_ADDRESS),
-			FLASHLOAN_SOURCE: "Dodo",
-			//matic usdc pool
-			FLASHLOAN_POOL_ADDRESS: "0x10Dd6d8A29D489BEDE472CC1b22dc695c144c5c7",
 			
+			
+			
+			//flashloan data
+			FLASHLOAN_POOL_ADDRESS: "0x5333Eb1E32522F1893B7C9feA3c263807A02d561", //DODO flashloan source (USDC pool)
+			FLASHLOAN_SOURCE: "Dodo",
+
 			//UniswapV3 data
 			UNISWAPV3_ROUTER_ABI: [{"inputs":[{"internalType":"address","name":"_factory","type":"address"},{"internalType":"address","name":"_WETH9","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[],"name":"WETH9","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"components":[{"internalType":"bytes","name":"path","type":"bytes"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMinimum","type":"uint256"}],"internalType":"struct ISwapRouter.ExactInputParams","name":"params","type":"tuple"}],"name":"exactInput","outputs":[{"internalType":"uint256","name":"amountOut","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMinimum","type":"uint256"},{"internalType":"uint160","name":"sqrtPriceLimitX96","type":"uint160"}],"internalType":"struct ISwapRouter.ExactInputSingleParams","name":"params","type":"tuple"}],"name":"exactInputSingle","outputs":[{"internalType":"uint256","name":"amountOut","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"bytes","name":"path","type":"bytes"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint256","name":"amountOut","type":"uint256"},{"internalType":"uint256","name":"amountInMaximum","type":"uint256"}],"internalType":"struct ISwapRouter.ExactOutputParams","name":"params","type":"tuple"}],"name":"exactOutput","outputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint256","name":"amountOut","type":"uint256"},{"internalType":"uint256","name":"amountInMaximum","type":"uint256"},{"internalType":"uint160","name":"sqrtPriceLimitX96","type":"uint160"}],"internalType":"struct ISwapRouter.ExactOutputSingleParams","name":"params","type":"tuple"}],"name":"exactOutputSingle","outputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bytes[]","name":"data","type":"bytes[]"}],"name":"multicall","outputs":[{"internalType":"bytes[]","name":"results","type":"bytes[]"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"refundETH","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermit","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitAllowed","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitAllowedIfNecessary","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitIfNecessary","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"name":"sweepToken","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"feeBips","type":"uint256"},{"internalType":"address","name":"feeRecipient","type":"address"}],"name":"sweepTokenWithFee","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"int256","name":"amount0Delta","type":"int256"},{"internalType":"int256","name":"amount1Delta","type":"int256"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"uniswapV3SwapCallback","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"name":"unwrapWETH9","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"feeBips","type":"uint256"},{"internalType":"address","name":"feeRecipient","type":"address"}],"name":"unwrapWETH9WithFee","outputs":[],"stateMutability":"payable","type":"function"},{"stateMutability":"payable","type":"receive"}],
 			UNISWAPV3_ROUTER_ADDRESS: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
@@ -282,6 +284,7 @@ exports.getItemFromTokenList = (_field, _content, _list) => {
 		blockchain: null,
 		ownerAddress: null,
 		tokenList: null,
-		networkId: null
+		networkId: null,
+		flashloanerDeployedAddressMainnet: null
 	}
   

@@ -15,7 +15,11 @@ class FlashloanerOps {
     constructor (_GLOBAL, _contractAddress){
         this.loggerBalanceEventABI = [ {type: 'uint256', name: 'oldBalance'}, {type: 'uint256', name: 'newBalance'} ];
         this.GLOBAL = _GLOBAL;
-        this.contractInstance = new this.GLOBAL.web3Instance.eth.Contract(Flashloan.abi, Flashloan.networks[this.GLOBAL.networkId].address, { from: this.GLOBAL.ownerAddress })
+        let flashloanerAddress = Flashloan.networks[this.GLOBAL.networkId].address;
+        if(this.GLOBAL.flashloanerDeployedAddressMainnet){
+            flashloanerAddress = GLOBAL.flashloanerDeployedAddressMainnet;
+        }
+        this.contractInstance = new this.GLOBAL.web3Instance.eth.Contract(Flashloan.abi, flashloanerAddress, { from: this.GLOBAL.ownerAddress })
     }
 
     /**

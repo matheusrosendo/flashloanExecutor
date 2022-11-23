@@ -163,6 +163,10 @@ function setMainGlobalData(_network){
     GLOBAL.ownerAddress = String(process.env.OWNER_ADDRESS);
     GLOBAL.tokenList = BlockchainConfig.blockchain[GLOBAL.blockchain].tokenList;
     GLOBAL.networkId = BlockchainConfig.blockchain[GLOBAL.blockchain].NETWORK_ID;
+    //set deployed address contained in .env file, in case it is not set, flashloaner address will be the local deployed address
+    if (BlockchainConfig.network[GLOBAL.network].FLASHLOANER_MAINNET_ADDRESS){
+        GLOBAL.flashloanerDeployedAddressMainnet = BlockchainConfig.network[GLOBAL.network].FLASHLOANER_MAINNET_ADDRESS
+    }
 }
 
 /**
