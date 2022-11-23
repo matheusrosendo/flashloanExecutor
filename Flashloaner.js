@@ -22,10 +22,6 @@ Number.prototype.toFixedDown = function(digits) {
     return m ? parseFloat(m[1]) : this.valueOf();
 };
 
-//global variables
-let FLASHLOANER_ADDRESS;
-
-
 /**
  * Web3 singleton 
  * @returns 
@@ -272,15 +268,7 @@ function getInitialFundsMainCrypto(){
     
     //show init main information
     await showInitInfo();
-    
-    // if flashloan address was set in .env, set FLASHLOAN_ADFRESS global variable with it, 
-    // or use local deployed contract address otherwise 
-    if(BlockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOANER_ADDRESS){
-        FLASHLOANER_ADDRESS = BlockchainConfig.blockchain[GLOBAL.blockchain].FLASHLOANER_ADDRESS
-    } else {
-        FLASHLOANER_ADDRESS = Flashloaner.networks[GLOBAL.networkId].address; 
-    }
-     
+         
     switch(mode[0]){
         case '1': //LOCAL DEV ONLY: exchange some Crypto by Wrapped Crypto, then WCRYPTO by DAI, and DAI by USDC on UniswapV3
             try{
@@ -318,20 +306,20 @@ function getInitialFundsMainCrypto(){
                 let balanceDAIowner = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.ownerAddress);
                 
                 if(balanceDAIowner > 1){
-                    await erc20ops.transfer( getERC20("DAI"), FLASHLOANER_ADDRESS, Number(balanceDAIowner).toFixedDown(4));
+                    await erc20ops.transfer( getERC20("DAI"), GLOBAL.flashloanerDeployedAddressMainnet, Number(balanceDAIowner).toFixedDown(4));
                 } else{
                 console.error("Warning: no DAI on owner address");
                 }
 
                 let balanceUSDCowner = await erc20ops.getBalanceOfERC20(getERC20("USDC"), GLOBAL.ownerAddress);
                 if(balanceUSDCowner > 1){
-                    await erc20ops.transfer( getERC20("USDC"), FLASHLOANER_ADDRESS, Number(balanceUSDCowner).toFixedDown(4));
+                    await erc20ops.transfer( getERC20("USDC"), GLOBAL.flashloanerDeployedAddressMainnet, Number(balanceUSDCowner).toFixedDown(4));
                 } else{
                 console.error("Warning: no USDC on owner address");
                 }
 
                 console.log("\n### contract balances: ###");
-                await showBalances(FLASHLOANER_ADDRESS); 
+                await showBalances(GLOBAL.flashloanerDeployedAddressMainnet); 
 
             } catch (error) {
                 throw(error);
@@ -345,8 +333,8 @@ function getInitialFundsMainCrypto(){
         console.log("######### Mode 3 | FLASHLOANER CONTRACT BALANCES #########");
             try {               
                 if(isContractOk(network, GLOBAL.ownerAddress)){
-                    console.log("### balances of contract "+FLASHLOANER_ADDRESS+" ###");
-                    await showBalances(FLASHLOANER_ADDRESS);
+                    console.log("### balances of contract "+GLOBAL.flashloanerDeployedAddressMainnet+" ###");
+                    await showBalances(GLOBAL.flashloanerDeployedAddressMainnet);
                 }
             } catch (error) {
                 throw(error);
@@ -495,16 +483,16 @@ function getInitialFundsMainCrypto(){
             try { 
                 console.log("######### Mode 6 | WITHDRAW FROM CONTRACT #########");
                 let erc20ops = new ERC20ops(GLOBAL);
-                let currentContractBalanceDai = await erc20ops.getBalanceOfERC20(getERC20("DAI"), FLASHLOANER_ADDRESS);
+                let currentContractBalanceDai = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.flashloanerDeployedAddressMainnet);
                 if(currentContractBalanceDai == 0){
                     console.log("There is no DAI in the flashloan contract!")
                 } else {
-                    let flashloanerOps = new FlashloanerOps(GLOBAL, FLASHLOANER_ADDRESS);
+                    let flashloanerOps = new FlashloanerOps(GLOBAL, GLOBAL.flashloanerDeployedAddressMainnet);
                     let tx = await flashloanerOps.withdrawToken(getERC20("DAI"));
                     console.log(tx.transactionHash);
                 }                
                 console.log("\n### CONTRACT balances: ###");
-                await showBalances(FLASHLOANER_ADDRESS); 
+                await showBalances(GLOBAL.flashloanerDeployedAddressMainnet); 
 
                 console.log("\n### OWNER balances: ###");
                 await showBalances(GLOBAL.ownerAddress); 

@@ -329,8 +329,12 @@ class Util {
         return (error.code && error.code == 429) || (error.message && error.message.search("exceeded") > -1);
     }
 
+    static getAlchemyWaitingLongTime(){
+        return 500 + (Math.random() * 10000);
+    }
+
     static getAlchemyWaitingTime(){
-        return 1000 + (Math.random() * 250);
+        return 500 + (Math.random() * 1000);
     }
   
 }

@@ -19,19 +19,40 @@ class UniswapV3ops {
      * @param {*} _fee 
      * @returns address (Promise)
      */    
-    getPoolAddress(_tokenIn, _tokenOut, _fee){
+    getPoolAddress(_tokenIn, _tokenOut, _fee, _times = 10){
         //handle response tx
         Util.assertValidInputs([_tokenIn, _tokenOut, _fee], "getPoolAddress");
         let txPromise = new Promise(async (resolve, reject) =>{ 
-            try {  
-                let feeBip = _fee * (10**4);          
-                let swapFactoryAddress = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_FACTORY_ADDRESS;
-                let swapFactoryContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_FACTORY_ABI, swapFactoryAddress, { from: this.GLOBAL.ownerAddress });
-                
-                let address = await swapFactoryContract.methods.getPool(_tokenIn.address, _tokenOut.address, feeBip).call();
-                resolve(address);
-            } catch (error) {
-                reject(error);
+            let totalTimes = new Array(_times).fill(1);
+            for (let shot in totalTimes){
+                  
+                try {  
+                    let feeBip = _fee * (10**4);          
+                    let swapFactoryAddress = BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_FACTORY_ADDRESS;
+                    let swapFactoryContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV3_FACTORY_ABI, swapFactoryAddress, { from: this.GLOBAL.ownerAddress });
+                    
+                    let address = await swapFactoryContract.methods.getPool(_tokenIn.address, _tokenOut.address, feeBip).call();
+                    //inform if it is in the second try and so forth
+                    if(parseInt(shot) > 0){
+                        console.log(`##### UniswapV3 pool address got it in SHOT ${parseInt(shot)+1} #####`);
+                    }
+                    resolve(address);
+                    break;
+                } catch (error) {
+                    
+                    //alchemy error code for exceeding units per second capacity. 
+                    if ( Util.isAlchemyExceedingError(error)){
+                        let waitTimeInMs = Util.getAlchemyWaitingLongTime();
+                        if(parseInt(shot) > 2){
+                            console.log(`##### trying to get UniswapV3 pool address again in ${Number(waitTimeInMs).toFixed(2)} ms... #####`);
+                        }
+                        await Util.sleep(waitTimeInMs);
+                    } else {
+                        console.log(`### error on query UniswapV3 pool address ${_tokenIn.address} ${_tokenOut.address} fee: ${_fee} error: ${error} ### `)
+                        reject(0.0);
+                        break
+                    }
+                }
             }
         });
         return txPromise;  
@@ -45,7 +66,7 @@ class UniswapV3ops {
      * @param {*} _fee 
      * @returns transaction (Promise)
      */
-     queryAmountOut(_quoterAddress, _amountIn, _tokenIn, _tokenOut, _fee, _times = 6){
+     queryAmountOut(_quoterAddress, _amountIn, _tokenIn, _tokenOut, _fee, _times = 10){
         Util.assertValidInputs([_quoterAddress, _amountIn, _tokenIn, _tokenOut, _fee], "queryAmountOut");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
@@ -60,7 +81,7 @@ class UniswapV3ops {
                     let amountOut = Util.amountFromBlockchain(amountOutWei, _tokenOut.decimals);
                     //inform if it is in the second try and so forth
                     if(parseInt(shot) > 0){
-                        console.log(`##### amount out got it in SHOT ${parseInt(shot)+1} #####`);
+                        console.log(`##### UniswapV3 amount out got it in SHOT ${parseInt(shot)+1} #####`);
                     }
                     resolve(amountOut);
                     break;
@@ -69,10 +90,12 @@ class UniswapV3ops {
                     //alchemy error code for exceeding units per second capacity. 
                     if ( Util.isAlchemyExceedingError(error)){
                         let waitTimeInMs = Util.getAlchemyWaitingTime();
-                        console.log(`##### trying to get token0 again in ${Number(waitTimeInMs).toFixed(2)} ms... #####`);
+                        if(parseInt(shot) > 2){
+                            console.log(`##### trying to get UniswapV3 amount out again in ${Number(waitTimeInMs).toFixed(2)} ms... #####`);
+                        }
                         await Util.sleep(waitTimeInMs);
                     } else {
-                        console.log(`### error on query UniswapV2 ${_tokenIn.address} ${_tokenOut.address} error: ${error} ### `)
+                        console.log(`### error on query UniswapV3 amount out ${_tokenIn.address} ${_tokenOut.address} fee: ${_fee} error: ${error} ### `)
                         reject(0.0);
                         break
                     }
@@ -208,7 +231,9 @@ class UniswapV3ops {
             } 
             return {bestFee: bestFee, updatedBlacklist: _blacklist};          
         } catch (error) {
-            throw new Error(error);
+            console.log("######## Unexpected error no queryFeeOfBestRoute: ########")
+            console.log(error);
+            return {bestFee: bestFee, updatedBlacklist: _blacklist};  
         }
     }
 

@@ -16,6 +16,7 @@ class FlashloanerOps {
         this.loggerBalanceEventABI = [ {type: 'uint256', name: 'oldBalance'}, {type: 'uint256', name: 'newBalance'} ];
         this.GLOBAL = _GLOBAL;
         let flashloanerAddress = Flashloan.networks[this.GLOBAL.networkId].address;
+        //it uses the FLASHLOANER address set in .env file, it it is set, else uses the local deployed contract 
         if(this.GLOBAL.flashloanerDeployedAddressMainnet){
             flashloanerAddress = GLOBAL.flashloanerDeployedAddressMainnet;
         }

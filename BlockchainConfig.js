@@ -43,7 +43,7 @@ exports.BlockchainConfig = {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8203",
 			BLOCKCHAIN: "polygon",	
-			FORCE_GENERATE_PATH: true
+			
 		},
 		
 		EthereumMainnet: {
