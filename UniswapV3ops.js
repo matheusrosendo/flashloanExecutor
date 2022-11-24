@@ -309,7 +309,8 @@ class UniswapV3ops {
                 let rawSwapTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: swapRouterAddress,
-                    maxFeePerGas: 100000000000,
+                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_HIGH,
                     data: dataSwap
                 };
 

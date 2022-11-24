@@ -24,7 +24,15 @@ class ERC20ops {
         try { 
             assert(_token.address, "Error: undefined token address!");
             if(this.contracts[_token.symbol] == undefined){
-                let contract = new this.GLOBAL.web3Instance.eth.Contract(_token.ABI, _token.address, { from: this.GLOBAL.ownerAddress });
+
+                //verify if an ABI property exists, otherwise get a generic ABI from blockchainConfig
+                let tokenAbi;
+                if(_token.ABI){
+                    tokenAbi = _token.ABI
+                }else{
+                    tokenAbi = BlockchainConfig.blockchain[this.GLOBAL.blockchain].ERC20_GENERIC_ABI;
+                }
+                let contract = new this.GLOBAL.web3Instance.eth.Contract(tokenAbi, _token.address, { from: this.GLOBAL.ownerAddress });
                 this.contracts[_token.symbol] = contract;
             }            
             return this.contracts[_token.symbol];        
@@ -76,12 +84,13 @@ class ERC20ops {
                 let rawTransferTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: contract._address,
-                    maxFeePerGas: 100000000000,
+                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataTransfer
                 };
 
                 //sign tx
-                let signedTransferTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawTransferTx, this.GLOBAL.ownerAddress);  
+                let signedTransferTx = await this.GLOBAL.web3Instance.eth.accounts.signTransaction(rawTransferTx, this.GLOBAL.ownerPK);  
                 
                 //send signed transaction
                 let transferTx = await this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedTransferTx.raw || signedTransferTx.rawTransaction);
@@ -173,12 +182,13 @@ class ERC20ops {
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: wethContract._address,
-                    maxFeePerGas: 100000000000,
+                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataWithdraw
                 };
 
                 //sign tx
-                let signedWithdrawTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawWithdrawTx, this.GLOBAL.ownerAddress);  
+                let signedWithdrawTx = await this.GLOBAL.web3Instance.eth.accounts.signTransaction(rawWithdrawTx, this.GLOBAL.ownerPK);  
                 
                 //send signed transaction
                 let withdrawTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction);
@@ -216,12 +226,13 @@ class ERC20ops {
                 let rawApproveTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: contractInstance._address,
-                    maxFeePerGas: 100000000000,
+                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataApprove
                 };
 
                 //sign tx
-                let signedApproveTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawApproveTx, this.GLOBAL.ownerAddress);                
+                let signedApproveTx = await this.GLOBAL.web3Instance.eth.accounts.signTransaction(rawApproveTx, this.GLOBAL.ownerPK);                
                 
                 //send signed transaction
                 let approveTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedApproveTx.raw || signedApproveTx.rawTransaction);

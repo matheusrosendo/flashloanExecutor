@@ -12,13 +12,13 @@ const Web3 = require('web3');
 
 class FlashloanerOps {
     
-    constructor (_GLOBAL, _contractAddress){
+    constructor (_GLOBAL){
         this.loggerBalanceEventABI = [ {type: 'uint256', name: 'oldBalance'}, {type: 'uint256', name: 'newBalance'} ];
         this.GLOBAL = _GLOBAL;
         let flashloanerAddress = Flashloan.networks[this.GLOBAL.networkId].address;
-        //it uses the FLASHLOANER address set in .env file, it it is set, else uses the local deployed contract 
+        //it uses the FLASHLOANER address set in .env file, if it is set, else uses the local deployed contract 
         if(this.GLOBAL.flashloanerDeployedAddressMainnet){
-            flashloanerAddress = GLOBAL.flashloanerDeployedAddressMainnet;
+            flashloanerAddress = this.GLOBAL.flashloanerDeployedAddressMainnet;
         }
         this.contractInstance = new this.GLOBAL.web3Instance.eth.Contract(Flashloan.abi, flashloanerAddress, { from: this.GLOBAL.ownerAddress })
     }
@@ -42,12 +42,13 @@ class FlashloanerOps {
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
-                    maxFeePerGas: 100000000000,
+                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataWithdraw
                 };
 
                 //sign tx
-                let signedWithdrawTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawWithdrawTx, this.GLOBAL.ownerAddress);  
+                let signedWithdrawTx = await this.GLOBAL.web3Instance.eth.accounts.signTransaction(rawWithdrawTx, this.GLOBAL.ownerPK);  
                 
                 //send signed transaction
                 let withdrawTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction);
@@ -57,7 +58,7 @@ class FlashloanerOps {
                     resolve(receipt);
                 });
                 withdrawTx.on("error", (err) => {
-                    console.log("### approve tx error: ###");
+                    console.log("### withdrawn tx error: ###");
                     reject(new Error(err));
                 }); 
 
@@ -113,17 +114,17 @@ class FlashloanerOps {
                 }
                 
             
-                //declare raw tx to withdraw
+                //declare raw tx 
                 let rawFlashloanTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
-                    maxFeePerGas: 100000000000,
-                    gasLimit: 10_000_000,
+                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_HIGH,
                     data: encodedMethod
                 };
 
                 //sign tx
-                let signedFlashloanTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawFlashloanTx, this.GLOBAL.ownerAddress);  
+                let signedFlashloanTx = await this.GLOBAL.web3Instance.eth.accounts.signTransaction(rawFlashloanTx, this.GLOBAL.ownerPK);  
                 
                 //send signed transaction
                 this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedFlashloanTx.raw || signedFlashloanTx.rawTransaction)

@@ -95,20 +95,24 @@ async function getOwner(_network, _contract){
     }
 }
 
-async function sendEth(_from, _to, _amount){
-    let rawTx = {
-        from: _from, 
-        to: _to, 
-        value: Util.amountToBlockchain(_amount, 18),
-        maxFeePerGas: 100000000000
-    };
-
-    //sign tx
-    let signedTx = await getWeb3Instance().eth.signTransaction(rawTx, String(process.env.OWNER_PK));
+function sendEth(_from, _to, _amount){
+    
                 
     //handle response tx
-    let txPromise = new Promise((resolve, reject) =>{            
+    let txPromise = new Promise(async (resolve, reject) =>{            
         try {
+            let rawTx = {
+                from: _from, 
+                to: _to, 
+                value: Util.amountToBlockchain(_amount, 18),
+                maxFeePerGas: BlockchainConfig.blockchain[GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                gasLimit: BlockchainConfig.blockchain[GLOBAL.blockchain].GAS_LIMIT_LOW,
+            };
+        
+            //sign tx
+            let ownerPk = String(process.env.OWNER_PK);
+            let signedTx = await getWeb3Instance().eth.accounts.signTransaction(rawTx, ownerPk);
+
             let sentTx = getWeb3Instance().eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
             
             sentTx.on("receipt", (receipt) => {
@@ -117,7 +121,7 @@ async function sendEth(_from, _to, _amount){
             });
             sentTx.on("error", (err) => {
                 console.log("### send tx error: ###");
-                throw(err);
+                reject (new Error(err));
             });                    
         } catch (error) {
             reject (new Error(error));
@@ -157,11 +161,14 @@ function setMainGlobalData(_network){
     GLOBAL.blockchain = BlockchainConfig.network[GLOBAL.network].BLOCKCHAIN;
     GLOBAL.RPCprovider = BlockchainConfig.network[GLOBAL.network].RPC_FLASHLOANER_PROVIDER;
     GLOBAL.ownerAddress = String(process.env.OWNER_ADDRESS);
+    GLOBAL.ownerPK = String(process.env.OWNER_PK);
     GLOBAL.tokenList = BlockchainConfig.blockchain[GLOBAL.blockchain].tokenList;
     GLOBAL.networkId = BlockchainConfig.blockchain[GLOBAL.blockchain].NETWORK_ID;
     //set deployed address contained in .env file, in case it is not set, flashloaner address will be the local deployed address
     if (BlockchainConfig.network[GLOBAL.network].FLASHLOANER_MAINNET_ADDRESS){
         GLOBAL.flashloanerDeployedAddressMainnet = BlockchainConfig.network[GLOBAL.network].FLASHLOANER_MAINNET_ADDRESS
+    } else {
+        GLOBAL.flashloanerDeployedAddressMainnet = Flashloaner.networks[GLOBAL.networkId].address
     }
 }
 
@@ -270,7 +277,7 @@ function getInitialFundsMainCrypto(){
     await showInitInfo();
          
     switch(mode[0]){
-        case '1': //LOCAL DEV ONLY: exchange some Crypto by Wrapped Crypto, then WCRYPTO by DAI, and DAI by USDC on UniswapV3
+        case '1': //FORK LOCAL DEV ONLY: exchange some Crypto by Wrapped Crypto, then WCRYPTO by DAI, and DAI by USDC on UniswapV3
             try{
                 let symbolWrappedMainCrypto = getWrappedMainCrypto();
                 let wrappedMainCrypto = getERC20(symbolWrappedMainCrypto);    
@@ -299,7 +306,7 @@ function getInitialFundsMainCrypto(){
             
         break;
 
-        case '2': //Fund Flashloan new input smart contract with DAI and USDC
+        case '2': //FORK LOCAL DEV ONLY: Fund Flashloan new input smart contract with DAI and USDC
             console.log("######### Mode 2 | FUND FLASHLOANER CONTRACT #########");
             try {               
                 let erc20ops = new ERC20ops(GLOBAL);
@@ -386,16 +393,12 @@ function getInitialFundsMainCrypto(){
                                 let parsedJson = Files.parseJSONtoOjectList(completeFileName);
                                 console.log("##### Processing new file: "+file+" #####")
                                 
-
-                                //take old Balance of initial token
+                                //instantiate classes and take old Balance of initial token
                                 let erc20ops = new ERC20ops(GLOBAL);
                                 let initialTokenSymbol = getInitialTokenSymbol(parsedJson);
                                 let initialToken = getERC20(initialTokenSymbol)
                                 let oldDaiBalance = await erc20ops.getBalanceOfERC20(initialToken, GLOBAL.ownerAddress);
-
-                                //execute flashloan
-                                let flashloanerOps = new FlashloanerOps(GLOBAL);
-                                
+                                let flashloanerOps = new FlashloanerOps(GLOBAL);                                
                                 let serializedFile;
 
                                 //first verify input file
@@ -411,11 +414,9 @@ function getInitialFundsMainCrypto(){
                                     serializedFile = await Files.serializeFlashloanResult(null, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER, process.env.FLASHLOAN_FOLDER_FAILED), oldDaiBalance, oldDaiBalance);
                                 } else {
                                     
-                                    
                                     try {
                                         //verify amount out of path first
                                         let verifiedAmount = await verifyAmountOut(parsedJson);
-                                        //uncomment below
                                         if(verifiedAmount < parsedJson.initialTokenAmount){
                                             let result = {
                                                 status: "not executed",
@@ -427,8 +428,7 @@ function getInitialFundsMainCrypto(){
                                         } else {
 
                                             //execute flashloan
-                                            let flashPromise = flashloanerOps.executeFlashloan(parsedJson);
-                                        
+                                            let flashPromise = flashloanerOps.executeFlashloan(parsedJson);                                        
                                             await flashPromise.then (async (response) =>{
                                                                                         
                                                 //calculate transaction cost in ETH
@@ -441,21 +441,16 @@ function getInitialFundsMainCrypto(){
                                                 serializedFile = await Files.serializeFlashloanResult(response, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER), oldDaiBalance, newDaiBalance);
                                                 console.log("##### Results: #####")
                                                 console.log(serializedFile.content.result);
-                                                
-                                                
                                             }).catch (async (error) => {
                                                 //serialize log file with the error
                                                 serializedFile = await Files.serializeFlashloanResult(error, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER, process.env.FLASHLOAN_FOLDER_FAILED), oldDaiBalance, oldDaiBalance);
                                                 console.log("##### Execution failed: #####")
                                                 console.log(error.details);
-                                                
                                             })
                                         }
-                                        
                                     } catch (error) {
                                         console.log(`Error executing flashloan error ${error}`);
-                                    }                                   
-                                    
+                                    } 
                                 } 
                                 
                                 //remove original input file
@@ -478,7 +473,7 @@ function getInitialFundsMainCrypto(){
        
         
         //withdraw DAI to owner
-        // Ex: node .\Flashloaner.js 5 networkName
+        // Ex: node .\Flashloaner.js 7 networkName
         case '6': 
             try { 
                 console.log("######### Mode 6 | WITHDRAW FROM CONTRACT #########");
@@ -487,7 +482,7 @@ function getInitialFundsMainCrypto(){
                 if(currentContractBalanceDai == 0){
                     console.log("There is no DAI in the flashloan contract!")
                 } else {
-                    let flashloanerOps = new FlashloanerOps(GLOBAL, GLOBAL.flashloanerDeployedAddressMainnet);
+                    let flashloanerOps = new FlashloanerOps(GLOBAL);
                     let tx = await flashloanerOps.withdrawToken(getERC20("DAI"));
                     console.log(tx.transactionHash);
                 }                
@@ -500,6 +495,109 @@ function getInitialFundsMainCrypto(){
                 throw (error);
             }
         break;
+
+
+        //Mumbai Polygon Testnet: send USDC to contract
+        // Ex: node .\Flashloaner.js 7 networkName
+        case '7': 
+            try { 
+                console.log("######### Mode 7 | SEND USDC TO CONTRACT #########");
+                let erc20ops = new ERC20ops(GLOBAL);
+                let amountToSend = 10;
+                let tokenUSDC = {address: "0xE097d6B3100777DC31B34dC2c58fB524C2e76921", decimals:6, symbol:"USDC"}
+                let currentOwnerBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.ownerAddress);
+                if(currentOwnerBalance == 0){
+                    console.log("There is no USDC in the owner account!")
+                } else {
+                    await erc20ops.transfer(tokenUSDC, GLOBAL.flashloanerDeployedAddressMainnet, amountToSend).then((receipt)=>{
+                        console.log("USDC sent successfully");
+                        console.log(receipt.transactionHash);
+                    }).catch((failedTx)=>{
+                        console.log("Failed transaction:");
+                        console.log(failedTx);
+                    }).finally(async ()=>{
+                        let contractBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.flashloanerDeployedAddressMainnet);
+                        console.log("\n### CONTRACT balance (USDC): ###");
+                        console.log(contractBalance);
+
+                        let newOwnerBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.ownerAddress);
+                        console.log("\n### OWNER balance (USDC): ###");
+                        console.log(newOwnerBalance); 
+                    })                    
+                }                
+                
+            } catch (error) {
+                throw (error);
+            }
+        break;
+        //Mumbai Polygon Testnet: withdraw USDC from contract
+        // Ex: node .\Flashloaner.js 8 networkName
+        case '8': 
+            try { 
+                console.log("######### Mode 8 | WITHDRAW USDC FROM CONTRACT #########");
+                let erc20ops = new ERC20ops(GLOBAL);
+                let flashloanOps = new FlashloanerOps(GLOBAL);
+                let tokenUSDC = {address: "0xE097d6B3100777DC31B34dC2c58fB524C2e76921", decimals:6, symbol:"USDC"}
+                let currentContractBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.flashloanerDeployedAddressMainnet);
+                if(currentContractBalance == 0){
+                    console.log("There is no USDC in the flashloan contract!")
+                } else {
+                    await flashloanOps.withdrawToken(tokenUSDC).then((receipt)=>{
+                        console.log("USDC withdrawn successfully");
+                        console.log(receipt.transactionHash);
+                    }).catch((failedTx)=>{
+                        console.log("Failed transaction:");
+                        console.log(failedTx);
+                    }).finally(async ()=>{
+                        let contractBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.flashloanerDeployedAddressMainnet);
+                        console.log("\n### CONTRACT balance (USDC): ###");
+                        console.log(contractBalance);
+
+                        let newOwnerBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.ownerAddress);
+                        console.log("\n### OWNER balance (USDC): ###");
+                        console.log(newOwnerBalance); 
+                    }) 
+                }                
+            } catch (error) {
+                throw (error);
+            }
+        break;
+
+
+        
+        case '9': //send an amount of ERC20 to contract 
+            try { 
+                console.log("######### Mode 9 | TRANSFER CRYPTO #########");
+                let amountIn = 0.1;
+                let ownerBalance = await GLOBAL.web3Instance.eth.getBalance(GLOBAL.ownerAddress);
+                let toAddress = "0x7Fe33b169f2113Ab87EF11950340CdE3f9Ce1b90"
+                //let toAddress = GLOBAL.flashloanerDeployedAddressMainnet
+                if(ownerBalance >= amountIn){
+                    await sendEth(GLOBAL.ownerAddress, toAddress, amountIn).then((receipt)=>{
+                        console.log(`### ${amountIn} ${getMainCrypto()} sent successfully ###`);
+                        console.log(receipt); 
+                    }).catch((failedTx)=>{
+                        console.log(`### failed tx ###`);
+                        console.log(failedTx);
+                    })
+                    console.log("\n### CONTRACT balances: ###");
+                    await showBalances(toAddress); 
+                } else {
+                    console.log("\n### Insuficient balance in owner account ###");
+                    console.log("\n### OWNER balances: ###");
+                    await showBalances(GLOBAL.ownerAddress); 
+                }                
+                                               
+                
+
+            } catch (error) {
+                throw (error);
+            }
+        break;
+
+
+
+        
         
         //show main address
         case '10': 

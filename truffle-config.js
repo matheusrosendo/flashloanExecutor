@@ -24,6 +24,14 @@ module.exports = {
 			network_id: 1,
 			skipDryRun: true,
 		},
+		PolygonTestnet: {
+			provider: RPCprovider,
+			network_id: 80001,
+			skipDryRun: true,
+			blockchain: "polygon",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
 		PolygonMainnet1: {
 			provider: RPCprovider,
 			network_id: 137,
@@ -49,6 +57,14 @@ module.exports = {
 			timeoutBlocks: timeoutBlocks
 		},
 		PolygonForkUpdate3: {
+			provider: RPCprovider,
+			network_id: 137,
+			skipDryRun: true,
+			blockchain: "polygon",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
+		PolygonForkUpdate4: {
 			provider: RPCprovider,
 			network_id: 137,
 			skipDryRun: true,
