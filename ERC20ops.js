@@ -85,6 +85,7 @@ class ERC20ops {
                     from: this.GLOBAL.ownerAddress, 
                     to: contract._address,
                     maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS,
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataTransfer
                 };
@@ -99,7 +100,7 @@ class ERC20ops {
                 resolve(transferTx);
 
             } catch (error) {
-                reject(new Error(error));
+                reject(error);
             }
         });
         return txPromise;  
@@ -183,6 +184,7 @@ class ERC20ops {
                     from: this.GLOBAL.ownerAddress, 
                     to: wethContract._address,
                     maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS,
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataWithdraw
                 };
@@ -227,6 +229,7 @@ class ERC20ops {
                     from: this.GLOBAL.ownerAddress, 
                     to: contractInstance._address,
                     maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS,
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataApprove
                 };

@@ -12,6 +12,8 @@ if(!BlockchainConfig.network[network]){
 let RPCprovider = new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[network].RPC_FLASHLOANER_PROVIDER);
 let networkCheckTimeout = 1000000000;
 let timeoutBlocks = 10000000;
+let gas = 10000000; //gas used to deploy Flashloaner contract 3718485. Default is 6721975
+let gasPrice = 30_000_000_000 //defult is 20gwei
 
 module.exports = {
 	// See <http://truffleframework.com/docs/advanced/configuration> to customize your Truffle configuration!
@@ -38,7 +40,9 @@ module.exports = {
 			skipDryRun: true,
 			blockchain: "polygon",
 			networkCheckTimeout: networkCheckTimeout,
-			timeoutBlocks: timeoutBlocks
+			timeoutBlocks: timeoutBlocks,
+			gas: gas,
+			gasPrice: gasPrice
 		},
 		PolygonForkUpdate1: {
 			provider: RPCprovider,

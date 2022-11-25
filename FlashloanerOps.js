@@ -43,6 +43,7 @@ class FlashloanerOps {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
                     maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS,
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataWithdraw
                 };
@@ -119,6 +120,7 @@ class FlashloanerOps {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
                     maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS * 2, //double tip to miners to put transaction in priority
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_HIGH,
                     data: encodedMethod
                 };

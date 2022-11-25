@@ -16,40 +16,33 @@ exports.BlockchainConfig = {
 		EthereumForkUpdate1: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8001",			
-			BLOCKCHAIN: "ethereum",		
-			FORCE_GENERATE_PATH: true
+			BLOCKCHAIN: "ethereum",	
 		},
 		EthereumForkUpdate2: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8002",
 			BLOCKCHAIN: "ethereum",
-			FORCE_GENERATE_PATH: false
 		},
 		EthereumForkUpdate3: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8003",
-			BLOCKCHAIN: "ethereum",	
-			FORCE_GENERATE_PATH: true		
+			BLOCKCHAIN: "ethereum",		
 		},
 
 		PolygonForkUpdate1: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8201",
 			BLOCKCHAIN: "polygon",	
-			FORCE_GENERATE_PATH: true
 		},
 		PolygonForkUpdate2: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8202",
 			BLOCKCHAIN: "polygon",
-			FORCE_GENERATE_PATH: true	
 		},
 		PolygonForkUpdate3: {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8203",
 			BLOCKCHAIN: "polygon",	
-			FORCE_GENERATE_PATH: true
-			
 		},
 
 		PolygonForkUpdate4: {
@@ -69,15 +62,21 @@ exports.BlockchainConfig = {
 		PolygonMainnet1: {
 			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
-			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8300",
+			RPC_FLASHLOANER_PROVIDER: process.env.POLYGON_RPC_PROVIDER_1,
 			BLOCKCHAIN: "polygon",
 		},
-		PolygonTestnet: {
+		PolygonMainnet2: {
 			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
-			RPC_FLASHLOANER_PROVIDER: process.env.POLYGON_RPC_TESTNET,
+			RPC_FLASHLOANER_PROVIDER: process.env.POLYGON_RPC_PROVIDER_1,
 			BLOCKCHAIN: "polygon",
-		}	
+		},
+		PolygonMainnet3: {
+			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
+			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
+			RPC_FLASHLOANER_PROVIDER: process.env.POLYGON_RPC_PROVIDER_1,
+			BLOCKCHAIN: "polygon",
+		},		
 	},
 	blockchain: {
 		ethereum: {
@@ -86,8 +85,9 @@ exports.BlockchainConfig = {
 			
 			GAS_LIMIT_LOW: 100_000,
 			GAS_LIMIT_HIGH: 1_000_000,
-			MAX_FEE_PER_GAS: 100_000_000_000,
-			
+			MAX_FEE_PER_GAS: 100_000_000_000, //(100 gwei, default is 30)
+			MAX_PRIORITY_FEE_PER_GAS: 5_000_000_000, //tips to miners to include transaction faster, tipically 2gwei on ethereum
+
 			FLASHLOAN_SOURCE: "Dodo",
 			FLASHLOAN_POOL_ADDRESS: "0x3058EF90929cb8180174D74C507176ccA6835D73",
 			
@@ -188,9 +188,10 @@ exports.BlockchainConfig = {
 			NETWORK_ID: 137,
 			EXPLORER: "http://polygonscan.com/address/",
 			
-			GAS_LIMIT_LOW: 100_000,
-			GAS_LIMIT_HIGH: 1_000_000,
-			MAX_FEE_PER_GAS: 100_000_000_000,
+			GAS_LIMIT_LOW: 500_000,
+			GAS_LIMIT_HIGH: 5_000_000,
+			MAX_FEE_PER_GAS: "100000000000", //100 gwei
+			MAX_PRIORITY_FEE_PER_GAS: "30000000000", //30gwei
 			
 			//flashloan data
 			FLASHLOAN_POOL_ADDRESS: "0x5333Eb1E32522F1893B7C9feA3c263807A02d561", //DODO flashloan source (USDC pool)

@@ -70,8 +70,7 @@ async function isContractOk(_network, _OwnerAddress){
     try {
         let Web3js = getWeb3Instance(_network);
         
-        
-        let flashloanerContract = new Web3js.eth.Contract(Flashloaner.abi, Flashloaner.networks[GLOBAL.networkId].address)
+        let flashloanerContract = new Web3js.eth.Contract(Flashloaner.abi, GLOBAL.flashloanerDeployedAddressMainnet)
         let owner = await flashloanerContract.methods.owner().call(); 
         if (owner == _OwnerAddress){
             return true;
@@ -478,12 +477,12 @@ function getInitialFundsMainCrypto(){
             try { 
                 console.log("######### Mode 6 | WITHDRAW FROM CONTRACT #########");
                 let erc20ops = new ERC20ops(GLOBAL);
-                let currentContractBalanceDai = await erc20ops.getBalanceOfERC20(getERC20("DAI"), GLOBAL.flashloanerDeployedAddressMainnet);
+                let currentContractBalanceDai = await erc20ops.getBalanceOfERC20(getERC20("USDC"), GLOBAL.flashloanerDeployedAddressMainnet);
                 if(currentContractBalanceDai == 0){
-                    console.log("There is no DAI in the flashloan contract!")
+                    console.log("There is no USDC in the flashloan contract!")
                 } else {
                     let flashloanerOps = new FlashloanerOps(GLOBAL);
-                    let tx = await flashloanerOps.withdrawToken(getERC20("DAI"));
+                    let tx = await flashloanerOps.withdrawToken(getERC20("USDC"));
                     console.log(tx.transactionHash);
                 }                
                 console.log("\n### CONTRACT balances: ###");
@@ -503,8 +502,8 @@ function getInitialFundsMainCrypto(){
             try { 
                 console.log("######### Mode 7 | SEND USDC TO CONTRACT #########");
                 let erc20ops = new ERC20ops(GLOBAL);
-                let amountToSend = 10;
-                let tokenUSDC = {address: "0xE097d6B3100777DC31B34dC2c58fB524C2e76921", decimals:6, symbol:"USDC"}
+                let amountToSend = 0.90;
+                let tokenUSDC = getERC20("USDC");
                 let currentOwnerBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.ownerAddress);
                 if(currentOwnerBalance == 0){
                     console.log("There is no USDC in the owner account!")
@@ -537,7 +536,7 @@ function getInitialFundsMainCrypto(){
                 console.log("######### Mode 8 | WITHDRAW USDC FROM CONTRACT #########");
                 let erc20ops = new ERC20ops(GLOBAL);
                 let flashloanOps = new FlashloanerOps(GLOBAL);
-                let tokenUSDC = {address: "0xE097d6B3100777DC31B34dC2c58fB524C2e76921", decimals:6, symbol:"USDC"}
+                let tokenUSDC = getERC20("USDC");
                 let currentContractBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.flashloanerDeployedAddressMainnet);
                 if(currentContractBalance == 0){
                     console.log("There is no USDC in the flashloan contract!")
@@ -565,36 +564,7 @@ function getInitialFundsMainCrypto(){
 
 
         
-        case '9': //send an amount of ERC20 to contract 
-            try { 
-                console.log("######### Mode 9 | TRANSFER CRYPTO #########");
-                let amountIn = 0.1;
-                let ownerBalance = await GLOBAL.web3Instance.eth.getBalance(GLOBAL.ownerAddress);
-                let toAddress = "0x7Fe33b169f2113Ab87EF11950340CdE3f9Ce1b90"
-                //let toAddress = GLOBAL.flashloanerDeployedAddressMainnet
-                if(ownerBalance >= amountIn){
-                    await sendEth(GLOBAL.ownerAddress, toAddress, amountIn).then((receipt)=>{
-                        console.log(`### ${amountIn} ${getMainCrypto()} sent successfully ###`);
-                        console.log(receipt); 
-                    }).catch((failedTx)=>{
-                        console.log(`### failed tx ###`);
-                        console.log(failedTx);
-                    })
-                    console.log("\n### CONTRACT balances: ###");
-                    await showBalances(toAddress); 
-                } else {
-                    console.log("\n### Insuficient balance in owner account ###");
-                    console.log("\n### OWNER balances: ###");
-                    await showBalances(GLOBAL.ownerAddress); 
-                }                
-                                               
-                
-
-            } catch (error) {
-                throw (error);
-            }
-        break;
-
+        
 
 
         
