@@ -94,7 +94,7 @@ async function getOwner(_network, _contract){
     }
 }
 
-function sendEth(_from, _to, _amount){
+function sendEth(_from, _to, _amount, ownerPk = String(process.env.OWNER_PK)){
     
                 
     //handle response tx
@@ -108,8 +108,6 @@ function sendEth(_from, _to, _amount){
                 gasLimit: BlockchainConfig.blockchain[GLOBAL.blockchain].GAS_LIMIT_LOW,
             };
         
-            //sign tx
-            let ownerPk = String(process.env.OWNER_PK);
             let signedTx = await getWeb3Instance().eth.accounts.signTransaction(rawTx, ownerPk);
 
             let sentTx = getWeb3Instance().eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction); 
@@ -120,14 +118,20 @@ function sendEth(_from, _to, _amount){
             });
             sentTx.on("error", (err) => {
                 console.log("### send tx error: ###");
-                reject (new Error(err));
+                reject (err);
             });                    
         } catch (error) {
-            reject (new Error(error));
+            reject (error);
         }
     });
     return txPromise;
 }
+
+async function getCryptoBalanceOf(_address){
+    let balanceInWei = await GLOBAL.web3Instance.eth.getBalance(GLOBAL.ownerAddress);
+    return Util.amountFromBlockchain(balanceInWei, 18);
+}
+
 
 async function showBalances(_address){
     let balanceMainCrypto = await GLOBAL.web3Instance.eth.getBalance(_address);
@@ -706,6 +710,34 @@ function getInitialFundsMainCrypto(){
                 throw (error);
             }
         break
+        case '17': //LOCAL DEV ONLY: send funds from other address with initial funds (1000 each), send to first address, exchange everything to Wrapped, 
+            try {
+                //send funds
+                await sendEth("0x8A661b951c0AdCBcf6494f1c3DfD5e3E70cF2250", "0x903fa83c6e7494B162eC16E477Cb34e3597fE3eC", 11000, "0x825ed5b9d77aca79ac3ae85f3397111f30bb30a5b0abb409b5f8c3a3afa19738");
+                
+                //exchange by wrapped crypto
+                let symbolWrappedMainCrypto = getWrappedMainCrypto();
+                let wrappedMainCrypto = getERC20(symbolWrappedMainCrypto); 
+                let currentCryptoBalance = await getCryptoBalanceOf(GLOBAL.ownerAddress);
+                await sendEth(GLOBAL.ownerAddress, wrappedMainCrypto.address, currentCryptoBalance-1); 
+                await showBalances(GLOBAL.ownerAddress)  
+
+                //exchange a huge amount of wrapped crypto by BTC
+                let erc20Ops = new ERC20ops(GLOBAL);
+                let wrappedCryptoBalance = await erc20Ops.getBalanceOfERC20(getERC20("WMATIC"), GLOBAL.ownerAddress);
+                let amountIn = wrappedCryptoBalance-1;
+                console.log(`amountIn WMATIC = ${amountIn}`);
+                let uniOps = new UniswapV3ops(GLOBAL); 
+                await uniOps.swap(2000, getERC20("WMATIC"), getERC20("BTC"), 0.05)  
+                
+                console.log(`BTC balance ${await erc20Ops.getBalanceOfERC20(getERC20("BTC"), GLOBAL.ownerAddress)}`);
+                console.log(`WMATIC balance ${await erc20Ops.getBalanceOfERC20(getERC20("WMATIC"), GLOBAL.ownerAddress)}`);
+
+
+            } catch (error) {
+                throw (error);
+            }
+        break;
         
 
         default:
