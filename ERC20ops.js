@@ -201,11 +201,11 @@ class ERC20ops {
                 });
                 withdrawTx.on("error", (err) => {
                     console.log("### approve tx error: ###");
-                    reject(new Error(err));
+                    reject(err);
                 }); 
 
             } catch (error) {
-                reject(new Error(error));
+                reject(error);
             }
         });
         return txPromise;  
@@ -246,10 +246,10 @@ class ERC20ops {
                 });
                 approveTx.on("error", (err) => {
                     console.log("### approve tx error: ###");
-                    reject(new Error(err));
+                    reject(err);
                 }); 
             } catch (error) {
-                reject(new Error(error));
+                reject(error);
             }
         });
         return txPromise;  

@@ -120,7 +120,7 @@ class UniswapV3ops {
                 let token0address = await poolContract.methods.token0().call();
                 resolve(token0address);
             } catch (error) {
-                reject(new Error(error));
+                reject(error);
             }
         });
         return txPromise;  
@@ -252,7 +252,7 @@ class UniswapV3ops {
                 let slot0 = await poolContract.methods.slot0().call();
                 resolve(slot0);
             } catch (error) {
-                reject(new Error(error));
+                reject(error);
             }
         });
         return txPromise;  
@@ -263,7 +263,7 @@ class UniswapV3ops {
      * @param {*} _amount 
      * @param {*} _tokenIn 
      * @param {*} _tokenOut 
-     * @param {*} _fee 500, 1000 or 3000 => 0.05%, 0.1%, 0.3%
+     * @param {*} _fee 0.05%, 0.1%, 0.3%
      * @returns transaction (Promise)
      */
     async swap(_amount, _tokenIn, _tokenOut, _fee){
@@ -326,11 +326,11 @@ class UniswapV3ops {
                 });
                 withdrawTx.on("error", (err) => {
                     console.log("### Exchange tx error: ###");
-                    reject(new Error(err));
+                    reject(err);
                 }); 
 
             } catch (error) {
-                reject(new Error(error));
+                reject(error);
             }
         });
         return txPromise;  

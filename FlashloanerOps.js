@@ -60,11 +60,11 @@ class FlashloanerOps {
                 });
                 withdrawTx.on("error", (err) => {
                     console.log("### withdrawn tx error: ###");
-                    reject(new Error(err));
+                    reject(err);
                 }); 
 
             } catch (error) {
-                reject(new Error(error));
+                reject(error);
             }
         });
         return txPromise;  
