@@ -72,16 +72,28 @@ class FlashloanerOps {
 
 
     /**
-     * returns chain id 
+     * query chain id contained in the storage variable chainId of the contract 
      * @param {*} _amount 
-     * @returns transaction (Promise)
+     * @returns chainId (Number)
      */
-     async getChainId(){
-        
-        try {
-            
+     async getChainId(){        
+        try {            
             let chainId = await this.contractInstance.methods.getChainId().call();
             return chainId;            
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+
+    /**
+     * query owner of the contract 
+     * @param {*} _amount 
+     * @returns address owner (String)
+     */
+     async getOwner(){        
+        try {            
+            let owner = await this.contractInstance.methods.owner().call();
+            return owner;            
         } catch (error) {
             throw new Error(error);
         }

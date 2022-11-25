@@ -162,6 +162,73 @@ class UniswapV2ops {
         return queryPromise;
     }
 
+    /**
+     * Realize swap between two tokens
+     * @param {*} _amount 
+     * @param {*} _tokenIn 
+     * @param {*} _tokenOut 
+     * @returns transaction (Promise)
+     */
+     async swap(_DEX, _amount, _tokenIn, _tokenOut){
+        //handle response tx
+        let txPromise = new Promise(async (resolve, reject) =>{ 
+            try { 
+                //vefifies if poolAddress exists
+                let poolAddress = await this.queryLiquidityPoolAddress(_DEX, _tokenIn, _tokenOut);
+                if(!poolAddress || poolAddress == "0x0000000000000000000000000000000000000000"){
+                    reject("Pool address not found");
+                }           
+                //instanciate router and factory contracts
+                let swapRouterAddress = _DEX.routerContractAddress;
+                let swapRouterContract = new this.GLOBAL.web3Instance.eth.Contract(BlockchainConfig.blockchain[this.GLOBAL.blockchain].UNISWAPV2_ROUTER_ABI, swapRouterAddress, { from: this.GLOBAL.ownerAddress });
+                
+                //extract params
+                let tokenIn = _tokenIn.address;
+                let tokenOut = _tokenOut.address;
+                let amountInWei = Util.amountToBlockchain(_amount, tokenIn.decimals);
+                let path = new Array();
+                path.push(tokenIn);
+                path.push(tokenOut);
+                let deadline = Math.floor(Date.now() / 1000) + (600 * 10)
+                
+                //aprove swap
+                let erc20ops = new ERC20ops(this.GLOBAL);
+                await erc20ops.approve(_tokenIn, swapRouterAddress, _amount);
+
+                //encode method 
+                let dataSwap = swapRouterContract.methods.swapExactTokensForTokens(amountInWei, 1, path, this.GLOBAL.ownerAddress, deadline).encodeABI(); 
+                    
+                //declare raw tx to withdraw
+                let rawSwapTx = {
+                    from: this.GLOBAL.ownerAddress, 
+                    to: swapRouterAddress,
+                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_HIGH,
+                    data: dataSwap
+                };
+
+                //sign tx
+                let signedWithdrawTx = await this.GLOBAL.web3Instance.eth.signTransaction(rawSwapTx, this.GLOBAL.ownerAddress);  
+                
+                //send signed transaction
+                let withdrawTx = this.GLOBAL.web3Instance.eth.sendSignedTransaction(signedWithdrawTx.raw || signedWithdrawTx.rawTransaction);
+                withdrawTx.on("receipt", (receipt) => {
+                    console.log(`### ${_amount} ${_tokenIn.symbol} exchanged by ${_tokenOut.symbol} successfully: ###`);  
+                    console.log(`### tx: ${receipt.transactionHash} ###`);                                         
+                    resolve(receipt);
+                });
+                withdrawTx.on("error", (err) => {
+                    console.log("### Exchange tx error: ###");
+                    reject(err);
+                }); 
+
+            } catch (error) {
+                reject(error);
+            }
+        });
+        return txPromise;  
+    } 
+
 
 }
 

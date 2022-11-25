@@ -83,16 +83,6 @@ async function isContractOk(_network, _OwnerAddress){
     }
 }
 
-async function getOwner(_network, _contract){
-    try {
-        let Web3js = getWeb3Instance(_network);
-        let flashloanContract = new Web3js.eth.Contract(_contract.abi, _contract.networks[GLOBAL.networkId].address)
-        let owner = await flashloanContract.methods.owner().call(); 
-        return owner;
-    } catch (error) {
-        throw new Error (error);
-    }
-}
 
 function sendEth(_from, _to, _amount, ownerPk = String(process.env.OWNER_PK)){
     
@@ -134,7 +124,7 @@ async function getCryptoBalanceOf(_address){
 
 
 async function showBalances(_address){
-    let balanceMainCrypto = await GLOBAL.web3Instance.eth.getBalance(_address);
+    let balanceMainCrypto = await getCryptoBalanceOf(_address);
     console.log(`${getMainCrypto()}: ${Web3.utils.fromWei(balanceMainCrypto)} `);
 
     let erc20ops = new ERC20ops(GLOBAL);     
@@ -337,8 +327,8 @@ function getInitialFundsMainCrypto(){
             
         break;
 
-       
-
+        // check flashloaner contract balances
+        // Ex: node .\Flashloaner.js 3 NETWORKNAME
         case '3': 
         console.log("######### Mode 3 | FLASHLOANER CONTRACT BALANCES #########");
             try {               
@@ -366,7 +356,7 @@ function getInitialFundsMainCrypto(){
         
        
 
-        // execute main flashloan function
+        // Main flashloan function: it reads the input flashloan file and verifies the current amount out of the route before executing it. 
         // ex: node .\Flashloaner.js 5 EthereumForkSpecBlock Networks\EthereumForkSpecBlock\FlashloanInput
         case '5': 
             console.log("######### Mode 5 | FLASHLOANER MAIN #########");
@@ -475,38 +465,14 @@ function getInitialFundsMainCrypto(){
         break;
        
         
-        //withdraw DAI to owner
-        // Ex: node .\Flashloaner.js 7 networkName
-        case '6': 
-            try { 
-                console.log("######### Mode 6 | WITHDRAW FROM CONTRACT #########");
-                let erc20ops = new ERC20ops(GLOBAL);
-                let currentContractBalanceDai = await erc20ops.getBalanceOfERC20(getERC20("USDC"), GLOBAL.flashloanerDeployedAddressMainnet);
-                if(currentContractBalanceDai == 0){
-                    console.log("There is no USDC in the flashloan contract!")
-                } else {
-                    let flashloanerOps = new FlashloanerOps(GLOBAL);
-                    let tx = await flashloanerOps.withdrawToken(getERC20("USDC"));
-                    console.log(tx.transactionHash);
-                }                
-                console.log("\n### CONTRACT balances: ###");
-                await showBalances(GLOBAL.flashloanerDeployedAddressMainnet); 
-
-                console.log("\n### OWNER balances: ###");
-                await showBalances(GLOBAL.ownerAddress); 
-            } catch (error) {
-                throw (error);
-            }
-        break;
-
-
-        //Mumbai Polygon Testnet: send USDC to contract
-        // Ex: node .\Flashloaner.js 7 networkName
+        
+        // Used for a simple interaction test to deployed smart contract. It sends 50 cents in USDC from owner address to contract address 
+        // Ex: node .\Flashloaner.js 7 PolygonMainnet1
         case '7': 
             try { 
                 console.log("######### Mode 7 | SEND USDC TO CONTRACT #########");
                 let erc20ops = new ERC20ops(GLOBAL);
-                let amountToSend = 0.90;
+                let amountToSend = 0.50;
                 let tokenUSDC = getERC20("USDC");
                 let currentOwnerBalance = await erc20ops.getBalanceOfERC20(tokenUSDC, GLOBAL.ownerAddress);
                 if(currentOwnerBalance == 0){
@@ -533,8 +499,9 @@ function getInitialFundsMainCrypto(){
                 throw (error);
             }
         break;
-        //Mumbai Polygon Testnet: withdraw USDC from contract
-        // Ex: node .\Flashloaner.js 8 networkName
+
+        // Used for a simple interaction test to deployed smart contract. It withdraws all USDC contained in the flashloaner contract back to owner account address
+        // Ex: node .\Flashloaner.js 8 PolygonMainnet1
         case '8': 
             try { 
                 console.log("######### Mode 8 | WITHDRAW USDC FROM CONTRACT #########");
@@ -576,7 +543,8 @@ function getInitialFundsMainCrypto(){
         //show main address
         case '10': 
             console.log("######### Mode 10 | SHOW MAIN ADDRESSES #########");
-            let ownerFlashloan = await getOwner(network, Flashloaner);
+            let uniswapV3ops = UniswapV3ops(GLOBAL);
+            let ownerFlashloan = await uniswapV3ops.getOwner();
             console.log("GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
             console.log("flashloan Owner Address: "+ownerFlashloan);
             console.log("DAItokenAddress: "+getERC20("DAI").address);
@@ -710,29 +678,38 @@ function getInitialFundsMainCrypto(){
                 throw (error);
             }
         break
-        case '17': //LOCAL DEV ONLY: send funds from other address with initial funds (1000 each), send to first address, exchange everything to Wrapped, 
+        
+        case '18': //POLYGON LOCAL DEV ONLY: exchange crypto MATIC by WMATIC, then WMATIC by WBTC on quickswap
             try {
-                //send funds
-                await sendEth("0x8A661b951c0AdCBcf6494f1c3DfD5e3E70cF2250", "0x903fa83c6e7494B162eC16E477Cb34e3597fE3eC", 11000, "0x825ed5b9d77aca79ac3ae85f3397111f30bb30a5b0abb409b5f8c3a3afa19738");
-                
-                //exchange by wrapped crypto
+                //amount of wraped to ken to be exchanged 
+                let amountWrapedTokenIn = 1000;
+                let tokenTo = getERC20("WBTC");
+                console.log(`######### Mode 18 | Exchange ${amountWrapedTokenIn} WMATIC -> WBTC on Quickswap #########`);
+
+                //instatiate quickswap dex
+                let DEX = {
+                    name: "quickswap", 
+                    routerContractAddress: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff", 
+                    factoryContractAddress: "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32",
+                    routerABI:BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV2_ROUTER_ABI,
+                    factoryABI:BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV2_FACTORY_ABI
+                }
+
+                //exchange crypto by wrapped crypto
                 let symbolWrappedMainCrypto = getWrappedMainCrypto();
                 let wrappedMainCrypto = getERC20(symbolWrappedMainCrypto); 
                 let currentCryptoBalance = await getCryptoBalanceOf(GLOBAL.ownerAddress);
                 await sendEth(GLOBAL.ownerAddress, wrappedMainCrypto.address, currentCryptoBalance-1); 
                 await showBalances(GLOBAL.ownerAddress)  
 
-                //exchange a huge amount of wrapped crypto by BTC
-                let erc20Ops = new ERC20ops(GLOBAL);
-                let wrappedCryptoBalance = await erc20Ops.getBalanceOfERC20(getERC20("WMATIC"), GLOBAL.ownerAddress);
-                let amountIn = wrappedCryptoBalance-1;
-                console.log(`amountIn WMATIC = ${amountIn}`);
-                let uniOps = new UniswapV3ops(GLOBAL); 
-                await uniOps.swap(2000, getERC20("WMATIC"), getERC20("BTC"), 0.05)  
+                //exchange wrapped crypto by defined token above
+                let erc20Ops = new ERC20ops(GLOBAL);         
+                let uniOps = new UniswapV2ops(GLOBAL); 
+                await uniOps.swap(DEX, amountWrapedTokenIn, wrappedMainCrypto, tokenTo)  
+                console.log("### owner balances: ###")
+                console.log(` ${wrappedMainCrypto.symbol} balance ${await erc20Ops.getBalanceOfERC20(wrappedMainCrypto, GLOBAL.ownerAddress)}`);
+                console.log(`${tokenTo.symbol} balance ${await erc20Ops.getBalanceOfERC20(tokenTo, GLOBAL.ownerAddress)}`);
                 
-                console.log(`BTC balance ${await erc20Ops.getBalanceOfERC20(getERC20("BTC"), GLOBAL.ownerAddress)}`);
-                console.log(`WMATIC balance ${await erc20Ops.getBalanceOfERC20(getERC20("WMATIC"), GLOBAL.ownerAddress)}`);
-
 
             } catch (error) {
                 throw (error);

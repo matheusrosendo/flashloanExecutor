@@ -37,10 +37,11 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
 
 
     /**
-     * Flashloan main function 
+     * Flashloan main function taking loan from a DODO pool
      */
     function flashloanDodo(FlashInputData memory _flashloanInputData) public onlyOwner checkInputData(_flashloanInputData) {
         
+        //encode data received to pass by parameter as bytes to the flashloan function of DODO pool 
         bytes memory flashData = abi.encode(FlashInputData(
             {
                 flashLoanPool: _flashloanInputData.flashLoanPool,
@@ -127,7 +128,7 @@ contract Flashloaner is DodoBase, AaveBase,  Withdrawable {
     /**
      * AAVE Flashloan main function
      */
-    function flashloanAave(FlashInputData memory _flashloanInputData) public {
+    function flashloanAave(FlashInputData memory _flashloanInputData) public onlyOwner {
         bytes memory flashData = abi.encode(FlashInputData(
             {
                 flashLoanPool: _flashloanInputData.flashLoanPool,
