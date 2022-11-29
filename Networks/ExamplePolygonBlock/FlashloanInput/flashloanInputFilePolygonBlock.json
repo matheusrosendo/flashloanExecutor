@@ -1,0 +1,62 @@
+{
+  "network": "ExamplePolygonBlock",
+  "RPCprovider": "http://127.0.0.1:8502",
+  "blockNumber": 36066008,
+  "initialAmountInUSD": 1000,
+  "estimatedProfit$": 75.48272324964432,
+  "estimatedProfit%": 7.548272324964432,
+  "route": [
+    "USDC_INIT",
+    "USDC_0",
+    "WETH_0",
+    "WETH_1",
+    "BTC_1",
+    "BTC_0",
+    "MATIC_0",
+    "USDC_END_0",
+    "USDC_FINAL"
+  ],
+  "initialTokenDecimals": 6,
+  "initialTokenAmount": 1000,
+  "flashloanInputData": {
+    "flashLoanSource": "Dodo",
+    "flashLoanPool": "0x5333Eb1E32522F1893B7C9feA3c263807A02d561",
+    "swaps": [
+      {
+        "protocolTypeIndex": 2,
+        "routerAddress": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+        "tokenInAddress": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+        "tokenOutAddress": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+        "fee": 3000
+      },
+      {
+        "protocolTypeIndex": 2,
+        "routerAddress": "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506",
+        "tokenInAddress": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+        "tokenOutAddress": "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
+        "fee": 3000
+      },
+      {
+        "protocolTypeIndex": 2,
+        "routerAddress": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+        "tokenInAddress": "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
+        "tokenOutAddress": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+        "fee": 3000
+      },
+      {
+        "protocolTypeIndex": 2,
+        "routerAddress": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+        "tokenInAddress": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+        "tokenOutAddress": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+        "fee": 3000
+      }
+    ]
+  },
+  "investigatedTokens": [
+    "USDC",
+    "MATIC",
+    "WETH",
+    "BTC",
+    "USDC_END"
+  ]
+}

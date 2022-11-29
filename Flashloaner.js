@@ -166,6 +166,8 @@ async function showBalances(_address){
     console.log(`USDT: ${balanceUSDT}`);
     let balanceUSDC = await erc20ops.getBalanceOfERC20(getERC20("USDC"), _address);
     console.log(`USDC: ${balanceUSDC}`);
+    let balanceWBTC = await erc20ops.getBalanceOfERC20(getERC20("WBTC"), _address);
+    console.log(`WBTC: ${balanceWBTC}`);
 } 
 
 /**
