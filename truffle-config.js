@@ -116,7 +116,6 @@ module.exports = {
 			networkCheckTimeout: networkCheckTimeout,
 			timeoutBlocks: timeoutBlocks
 		},
-
 		EthereumForkSpecBlock: {
 			provider: RPCprovider,
 			network_id: 1,
@@ -124,7 +123,37 @@ module.exports = {
 			blockchain: "ethereum",
 			networkCheckTimeout: networkCheckTimeout,
 			timeoutBlocks: timeoutBlocks
-		}
+		},
+		//readme example networks 
+		EthereumBlockExample: {
+			provider: RPCprovider,
+			network_id: 1,
+			skipDryRun: true,
+			blockchain: "ethereum",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
+		PolygonBlockExample: {
+			provider: RPCprovider,
+			network_id: 1,
+			skipDryRun: true,
+			blockchain: "polygon",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
+		PolygonMainnetExample: {
+			provider: RPCprovider,
+			network_id: 137,
+			skipDryRun: true,
+			blockchain: "polygon",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks,
+			gas: gas,
+			gasPrice: gasPrice
+		},
+
+		
+
 	},
 	compilers: {
 		solc: {
