@@ -6,7 +6,7 @@
 const {BlockchainConfig, getItemFromTokenList} = require("./BlockchainConfig.js");
 const Util = require("./Util.js");
 const ERC20ops = require("./ERC20ops.js");
-const { assert } = require("chai");
+const assert = require('assert');
 
 class CurveOps {
     constructor (_GLOBAL){
