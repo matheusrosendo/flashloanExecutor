@@ -15,11 +15,6 @@ Networks/*
 execs
 old
 
-
-#folders with flashloan inputs and outputs
-FlashloanInput
-FlashloanExecuted
-
 # Logs
 logs
 *.log

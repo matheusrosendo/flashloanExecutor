@@ -20,9 +20,9 @@
  
 ## Prerequisites
 * Clone this repository: `git clone --branch LATEST-TAG https://github.com/matheusrosendo/flashloanExecutor.git`
-* Rename .envexample to .env
-* Make sure .env is in your .gitignore file and will not be acessed by anyone else if it will contain PK and/or mnemonic of real account
-* Enter main folder and install dependencies : `npm install`
+* Rename exampleDotEnv to .env
+* Make sure .env is in your .gitignore file and will not be acessed by anyone else if it will contain PK and/or mnemonic of real account with valueable assets
+* Enter main folder and install dependencies: `npm install`
 > If you are going to deploy on mainnet it is advised to create a brand new account, you can use metamask.io for that
 * Copy mnemonic, address, PK and paste it into the .env file
 * Fill POLYGON_RPC_PROVIDER_1 with your Polygon RPC provider. https://www.quicknode.com provides frontrunning protection, so it is a good option for that, you can also use a public one like https://polygon-rpc.com
