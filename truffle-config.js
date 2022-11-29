@@ -76,6 +76,14 @@ module.exports = {
 			networkCheckTimeout: networkCheckTimeout,
 			timeoutBlocks: timeoutBlocks
 		},
+		PolygonForkSpecBlock: {
+			provider: RPCprovider,
+			network_id: 137,
+			skipDryRun: true,
+			blockchain: "polygon",
+			networkCheckTimeout: networkCheckTimeout,
+			timeoutBlocks: timeoutBlocks
+		},
 		EthereumForkUpdate1: {
 			provider: RPCprovider,
 			network_id: 1,

@@ -412,8 +412,9 @@ function getInitialFundsMainCrypto(){
                                         let verifiedAmount = await verifyAmountOut(parsedJson);
                                         if(verifiedAmount < parsedJson.initialTokenAmount){
                                             let result = {
+                                                block: await getCurrentBlock(GLOBAL.network),
                                                 status: "not executed",
-                                                details: "verified amount out less than initial amount",
+                                                details: `verified amount out: ${verifiedAmount} less than initial amount: ${parsedJson.initialTokenAmount} `,
                                             }
                                             parsedJson.result = result;
                                             console.log(`### FLASHLOAN ABORTED: verified amount out (${Number(verifiedAmount).toFixed(2)}) inferior to initial amount ${parsedJson.initialTokenAmount}} ###`);

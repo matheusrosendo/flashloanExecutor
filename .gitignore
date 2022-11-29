@@ -1,8 +1,20 @@
 #local copy of ethereum nodes
+*
+!*/
+
+# track this file
+!.gitignore
+
 database
-Networks
+Networks/*
+
+# whitelist readme example folders
+!Networks/PolygonBlockExample
+!Networks/EthereumBlockExample
+
 execs
 old
+
 
 #folders with flashloan inputs and outputs
 FlashloanInput
