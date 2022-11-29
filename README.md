@@ -7,6 +7,7 @@
 - BlockchainConfig.js: it has all the information about the blockchain you are are deploying to: main token list, ABI and addresses of the DEX, networkID, gas info and so on
 - truffle-config.js: configuration file of Truffle, in this project it reads info like RPC provider from BlockchainConfig.js, for more info about truffle, visit https://trufflesuite.com/docs/truffle/quickstart/ 
 - Flashloaner.sol: the smart contract containing all logic to execute the flashloan on both blockchains, Polygon or Ethereum. By default it takes loan from a DODO pool, because there is no fees charged, but it also works taking loan from AAVE pools. It process all swaps contained in the input parameter read from the flashloan input json file.
+- contracts files: all files in this folder is used by Flashloaner.sol, some interfaces were created, other get straight from oficial github repos of the Defis used here (UniswapV2, Dodo, UniswapV3, Curve, Aave), just like openzeppelin libraries. Some files neeeded a few adjustments in order to all complain the solidity 0.8 version.
 - FlashloanInputFileExample.json: it must contain an object called *initialTokenDecimals*,  *initialTokenAmount*, *flashloanInputData* with the following data:
   - flashLoanSource: Name of the source (Dodo or Aave)
   - flashLoanPool: Address of the pool to take the loan from
