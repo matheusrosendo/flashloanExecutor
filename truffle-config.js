@@ -125,7 +125,7 @@ module.exports = {
 			timeoutBlocks: timeoutBlocks
 		},
 		//readme example networks 
-		EthereumBlockExample: {
+		ExampleEthereumBlock: {
 			provider: RPCprovider,
 			network_id: 1,
 			skipDryRun: true,
@@ -133,7 +133,7 @@ module.exports = {
 			networkCheckTimeout: networkCheckTimeout,
 			timeoutBlocks: timeoutBlocks
 		},
-		PolygonBlockExample: {
+		ExamplePolygonBlock: {
 			provider: RPCprovider,
 			network_id: 1,
 			skipDryRun: true,
@@ -141,7 +141,7 @@ module.exports = {
 			networkCheckTimeout: networkCheckTimeout,
 			timeoutBlocks: timeoutBlocks
 		},
-		PolygonMainnetExample: {
+		ExamplePolygonMainnet: {
 			provider: RPCprovider,
 			network_id: 137,
 			skipDryRun: true,

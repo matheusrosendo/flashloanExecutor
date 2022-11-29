@@ -68,19 +68,19 @@ exports.BlockchainConfig = {
 		
 		
 		//readme example networks 
-		PolygonBlockExample: {
+		ExamplePolygonBlock: {
 			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
 			RPC_ARBITRAGEUR_PROVIDER: "http://127.0.0.1:8502",
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8502",
 			BLOCKCHAIN: "polygon",
 		},	
-		EthereumBlockExample: {
+		ExampleEthereumBlock: {
 			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
 			RPC_ARBITRAGEUR_PROVIDER: "http://127.0.0.1:8501",
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8501",
 			BLOCKCHAIN: "ethereum",
 		},	
-		PolygonMainnetExample: {
+		ExamplePolygonMainnet: {
 			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: process.env.POLYGON_RPC_PROVIDER_1,

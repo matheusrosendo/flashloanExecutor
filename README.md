@@ -41,11 +41,11 @@ to be continued ...
 ## How to test the Flashloaner smart contract on forked local Polygon simulating a profitable route
 > Create a mirror of the current state of the mainnet blockchain, Polygon in this case, and artificially generate an arbitrage oportunity trading a considerable amount of the token in (WMATIC) to token out (WBTC) using a pair pool of a UniswapV2 type DEX, in this case we are going to use Quickswap and the pool WMATIC / WBTC. Specifically at the block to be forked here (36066000), this pool pair had about only 11k USD tvl (total value locked) with approximatelly 7k WMATIC and 0.36 BTC. So the idea is to exchange 1k WMATIC to WBTC generating an artificial local arbitrage oportunity passing through this pair, then execute the deployed Flashloaner contract locally checking out the results before and after that.
 * make a local Polygon fork exchanging YOUR_MNEMONIC by yours: `ganache-cli --fork https://polygon-rpc.com@36066000 -p 8502 --db Networks\ExamplePolygonBlock\database -a 1 -e 1000000 -m 'YOUR_MNEMONIC'`
-> Here you are going to have enough MATIC (1M) in your local owner account to start the process 
-* You should be able to see it by checkingout your owner account balances: `node .\Flashloaner.js 4 ExamplePolygonBlock`
-* Deploy Flashloaner smart contract on local fork blockchain just created: `truffle migrate --reset --network ExamplePolygonBlock`
+> Now you should have enough MATIC (1M) in your local owner account to start the process.  
+* Open a new terminal and deploy Flashloaner smart contract on local fork blockchain just created: `truffle migrate --reset --network ExamplePolygonBlock`
 * Try to execute the route contained in the flashloan json file : `node .\Flashloaner.js 5 ExamplePolygonBlock Networks\ExamplePolygonBlock\FlashloanInput`
 > the expected result here is *FLASHLOAN ABORTED: verified amount out TOKEN inferior to initial amount*
+* Check out your owner account balances: `node .\Flashloaner.js 4 ExamplePolygonBlock`
 * Exchange MATIC by WMATIC, them WMATIC by WBTC: `node  .\Flashloaner.js 18 ExamplePolygonBlock`
 * Check again owner balances, you should have some WBTC now: `node .\Flashloaner.js 4 ExamplePolygonBlock`
 * Execute again Flashloaner: `node .\Flashloaner.js 5 ExamplePolygonBlock ExamplePolygonBlock\FlashloanInput`
