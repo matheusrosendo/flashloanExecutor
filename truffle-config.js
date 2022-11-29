@@ -135,7 +135,7 @@ module.exports = {
 		},
 		ExamplePolygonBlock: {
 			provider: RPCprovider,
-			network_id: 1,
+			network_id: 137,
 			skipDryRun: true,
 			blockchain: "polygon",
 			networkCheckTimeout: networkCheckTimeout,
