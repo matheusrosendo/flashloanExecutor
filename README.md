@@ -34,23 +34,23 @@
 
 ## How to execute a known profitable route in a forked local Ethereum on a specific block
 > Here the idea is to execute a known profitable route found by my arbitrageur bot in a specific block (15951506) of ethereum mainnet.
-* Make a local Ethereum fork: `ganache-cli --fork https://polygon-rpc.com@36066000 -p 8001 --db Networks\PolygonForkUpdate1\db
+* Make a local Ethereum fork: `ganache-cli --fork https://polygon-rpc.com@36066000 -p 8001 --db Networks\ExampleEthereumBlock\db
 to be continued ...
 
 
 ## How to test the Flashloaner smart contract on forked local Polygon simulating a profitable route
 > Create a mirror of the current state of the mainnet blockchain, Polygon in this case, and artificially generate an arbitrage oportunity trading a considerable amount of the token in (WMATIC) to token out (WBTC) using a pair pool of a UniswapV2 type DEX, in this case we are going to use Quickswap and the pool WMATIC / WBTC. Specifically at the block to be forked here (36066000), this pool pair had about only 11k USD tvl (total value locked) with approximatelly 7k WMATIC and 0.36 BTC. So the idea is to exchange 1k WMATIC to WBTC generating an artificial local arbitrage oportunity passing through this pair, then execute the deployed Flashloaner contract locally checking out the results before and after that.
-* make a local Polygon fork exchanging YOUR_MNEMONIC by yours: `ganache-cli --fork https://polygon-rpc.com@36066000 -p 8502 --db Networks\PolygonBlockExample\database -m YOUR_MNEMONIC -a 1 -e 1000000`
+* make a local Polygon fork exchanging YOUR_MNEMONIC by yours: `ganache-cli --fork https://polygon-rpc.com@36066000 -p 8502 --db Networks\ExamplePolygonBlock\database -a 1 -e 1000000 -m 'YOUR_MNEMONIC'`
 > Here you are going to have enough MATIC (1M) in your local owner account to start the process 
-* You should be able to see it by checkingout your owner account balances: `node .\Flashloaner.js 4 PolygonForkUpdate1`
-* Deploy Flashloaner smart contract on local fork blockchain just created: `truffle migrate --reset --network PolygonForkUpdate1`
-* Try to execute the route contained in the flashloan json file : `node .\Flashloaner.js 5 PolygonForkUpdate1 PolygonForkUpdate1\FlashloanInput`
+* You should be able to see it by checkingout your owner account balances: `node .\Flashloaner.js 4 ExamplePolygonBlock`
+* Deploy Flashloaner smart contract on local fork blockchain just created: `truffle migrate --reset --network ExamplePolygonBlock`
+* Try to execute the route contained in the flashloan json file : `node .\Flashloaner.js 5 ExamplePolygonBlock Networks\ExamplePolygonBlock\FlashloanInput`
 > the expected result here is *FLASHLOAN ABORTED: verified amount out TOKEN inferior to initial amount*
-* Exchange MATIC by WMATIC, them WMATIC by WBTC: `node  .\Flashloaner.js 18 PolygonForkUpdate1`
-* Check again owner balances, you should have some WBTC now: `node .\Flashloaner.js 4 PolygonForkUpdate1`
-* Execute again Flashloaner: `node .\Flashloaner.js 5 PolygonForkUpdate1 PolygonForkUpdate1\FlashloanInput`
+* Exchange MATIC by WMATIC, them WMATIC by WBTC: `node  .\Flashloaner.js 18 ExamplePolygonBlock`
+* Check again owner balances, you should have some WBTC now: `node .\Flashloaner.js 4 ExamplePolygonBlock`
+* Execute again Flashloaner: `node .\Flashloaner.js 5 ExamplePolygonBlock ExamplePolygonBlock\FlashloanInput`
 > if everything worked fine the expected result will be a flashloan execute with profit and a log file created on FlashloanOutput with the result
-* Check owner balances one more time, now you should have the profit of the execution in USDC: `node .\Flashloaner.js 4 PolygonForkUpdate1`
+* Check owner balances one more time, now you should have the profit of the execution in USDC: `node .\Flashloaner.js 4 ExamplePolygonBlock`
 
 
 ## How to deploy the Flashloaner smart contract on Polygon Mainnet
