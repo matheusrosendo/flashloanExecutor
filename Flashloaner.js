@@ -125,7 +125,7 @@ async function getCryptoBalanceOf(_address){
 
 async function showBalances(_address){
     let balanceMainCrypto = await getCryptoBalanceOf(_address);
-    console.log(`${getMainCrypto()}: ${Web3.utils.fromWei(balanceMainCrypto)} `);
+    console.log(`${getMainCrypto()}: ${balanceMainCrypto} `);
 
     let erc20ops = new ERC20ops(GLOBAL);     
     let symbolWrapped = getWrappedMainCrypto();
