@@ -46,7 +46,7 @@ to be continued ...
 * Try to execute the route contained in the flashloan json file : `node .\Flashloaner.js 5 ExamplePolygonBlock Networks\ExamplePolygonBlock\FlashloanInput`
 > the expected result here is *FLASHLOAN ABORTED: verified amount out TOKEN inferior to initial amount*
 * Check out your owner account balances: `node .\Flashloaner.js 4 ExamplePolygonBlock`
-* Exchange MATIC by WMATIC, them WMATIC by WBTC: `node  .\Flashloaner.js 18 ExamplePolygonBlock`
+* Exchange MATIC by WMATIC, them WMATIC by WBTC: `node .\Flashloaner.js 6 ExamplePolygonBlock`
 * Check again owner balances, you should have some WBTC now: `node .\Flashloaner.js 4 ExamplePolygonBlock`
 * Execute again Flashloaner: `node .\Flashloaner.js 5 ExamplePolygonBlock ExamplePolygonBlock\FlashloanInput`
 > if everything worked fine the expected result will be a flashloan execute with profit and a log file created on FlashloanOutput with the result

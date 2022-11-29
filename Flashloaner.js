@@ -16,6 +16,11 @@ const { get } = require("http");
 const Spot = require('@binance/connector/src/spot')
 const HDWalletProvider = require("@truffle/hdwallet-provider")
 
+/**
+ * Used to truncate a Number to digits
+ * @param {Number} digits 
+ * @returns 
+ */
 Number.prototype.toFixedDown = function(digits) {
     var re = new RegExp("(\\d+\\.\\d{" + digits + "})(\\d)"),
         m = this.toString().match(re);
@@ -23,7 +28,7 @@ Number.prototype.toFixedDown = function(digits) {
 };
 
 /**
- * Web3 singleton 
+ * Web3 instance singleton 
  * @returns 
  */
 function getWeb3Instance(_network){
@@ -38,6 +43,11 @@ function getWeb3Instance(_network){
     return  GLOBAL.web3Instance; 
 }
 
+/**
+ * get latest block number of current blockchain
+ * @param {String} _network 
+ * @returns Number
+ */
 async function getCurrentBlock(_network){
     let blockNumber;
     try {
@@ -49,6 +59,10 @@ async function getCurrentBlock(_network){
     return blockNumber;
 }
 
+/**
+ * query current gas price in gwei
+ * @returns Number
+ */
 async function getCurrentGasPriceInGwei(){
     let gasPriceInGwei;
     try {
@@ -62,17 +76,17 @@ async function getCurrentGasPriceInGwei(){
 
 /**
  * Verifies if flashloan contract is properly deployed
- * @param {*} _network 
- * @param {*} _OwnerAddress 
- * @returns 
+ * @param {String} _network 
+ * @param {String} _ownerAddress 
+ * @returns bool
  */
-async function isContractOk(_network, _OwnerAddress){
+async function isContractOk(_network, _ownerAddress){
     try {
         let Web3js = getWeb3Instance(_network);
         
         let flashloanerContract = new Web3js.eth.Contract(Flashloaner.abi, GLOBAL.flashloanerDeployedAddressMainnet)
         let owner = await flashloanerContract.methods.owner().call(); 
-        if (owner == _OwnerAddress){
+        if (owner == _ownerAddress){
             return true;
         } else {
             console.log("Error: contract found but owner is not the informed address, owner found = "+owner);
@@ -83,7 +97,14 @@ async function isContractOk(_network, _OwnerAddress){
     }
 }
 
-
+/**
+ * Send _amount Main Crypto from _from address to _to address
+ * @param {*} _from 
+ * @param {*} _to 
+ * @param {*} _amount 
+ * @param {*} ownerPk 
+ * @returns transaction (Promise)
+ */
 function sendEth(_from, _to, _amount, ownerPk = String(process.env.OWNER_PK)){
     
                 
@@ -117,12 +138,20 @@ function sendEth(_from, _to, _amount, ownerPk = String(process.env.OWNER_PK)){
     return txPromise;
 }
 
+/**
+ * Query main crypto balance of given _address
+ * @param {String} _address 
+ * @returns Number
+ */
 async function getCryptoBalanceOf(_address){
     let balanceInWei = await GLOBAL.web3Instance.eth.getBalance(GLOBAL.ownerAddress);
     return Util.amountFromBlockchain(balanceInWei, 18);
 }
 
-
+/**
+ * Show Main Crypto and some main token balances of given _address 
+ * @param {*} _address 
+ */
 async function showBalances(_address){
     let balanceMainCrypto = await getCryptoBalanceOf(_address);
     console.log(`${getMainCrypto()}: ${balanceMainCrypto} `);
@@ -139,6 +168,9 @@ async function showBalances(_address){
     console.log(`USDC: ${balanceUSDC}`);
 } 
 
+/**
+ * Show initial info (RPC provider, blochain, network, etc)
+ */
 async function showInitInfo(){
     let currentBlock = await getCurrentBlock(GLOBAL.network);
     let gasPriceInGwei = await getCurrentGasPriceInGwei();
@@ -148,6 +180,10 @@ async function showInitInfo(){
     console.log(`### network: ${GLOBAL.network} | block: ${currentBlock} | last gas price: ${gasPriceInGwei} gwei ###\n`); 
 }
 
+/**
+ * Set main global data used for all interactions with smart contracts
+ * @param {*} _network 
+ */
 function setMainGlobalData(_network){
     GLOBAL.network = _network;
     GLOBAL.web3Instance = getWeb3Instance(GLOBAL.network);
@@ -218,6 +254,10 @@ function getERC20(_symbol){
     return lastAmount;
 }
 
+/**
+ * Get Main Crypto symbol according to current blockchain (Ethereum or Polygon)
+ * @returns String
+ */
 function getMainCrypto(){
     if(GLOBAL.blockchain == "ethereum"){
         return "ETH";
@@ -228,10 +268,18 @@ function getMainCrypto(){
     }
 }
 
+/**
+ * Get symbol of Wrapped Main Crypto of current blockchain
+ * @returns 
+ */
 function getWrappedMainCrypto(){
     return "W"+getMainCrypto();
 }
 
+/**
+ * Used to fund smart contract with Main Crypto 
+ * @returns Number
+ */
 function getInitialFundsMainCrypto(){
     try {
         
@@ -465,6 +513,44 @@ function getInitialFundsMainCrypto(){
         
         break;
        
+        //POLYGON LOCAL DEV ONLY: exchange Main Crypto MATIC by WMATIC, then WMATIC by WBTC on quickswap
+        // ex: node .\Flashloaner.js 6 ExamplePolygonBlock
+        case '6': 
+            try {
+                //amount of wraped to ken to be exchanged 
+                let amountWrapedTokenIn = 1000;
+                let tokenTo = getERC20("WBTC");
+                console.log(`######### Mode 18 | Exchange ${amountWrapedTokenIn} WMATIC -> WBTC on Quickswap #########`);
+
+                //instatiate quickswap dex
+                let DEX = {
+                    name: "quickswap", 
+                    routerContractAddress: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff", 
+                    factoryContractAddress: "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32",
+                    routerABI:BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV2_ROUTER_ABI,
+                    factoryABI:BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV2_FACTORY_ABI
+                }
+
+                //exchange crypto by wrapped crypto
+                let symbolWrappedMainCrypto = getWrappedMainCrypto();
+                let wrappedMainCrypto = getERC20(symbolWrappedMainCrypto); 
+                let currentCryptoBalance = await getCryptoBalanceOf(GLOBAL.ownerAddress);
+                await sendEth(GLOBAL.ownerAddress, wrappedMainCrypto.address, currentCryptoBalance-1); 
+                await showBalances(GLOBAL.ownerAddress)  
+
+                //exchange wrapped crypto by defined token above
+                let erc20Ops = new ERC20ops(GLOBAL);         
+                let uniOps = new UniswapV2ops(GLOBAL); 
+                await uniOps.swap(DEX, amountWrapedTokenIn, wrappedMainCrypto, tokenTo)  
+                console.log("### owner balances: ###")
+                console.log(` ${wrappedMainCrypto.symbol} balance ${await erc20Ops.getBalanceOfERC20(wrappedMainCrypto, GLOBAL.ownerAddress)}`);
+                console.log(`${tokenTo.symbol} balance ${await erc20Ops.getBalanceOfERC20(tokenTo, GLOBAL.ownerAddress)}`);
+                
+
+            } catch (error) {
+                throw (error);
+            }
+        break;
         
         
         // Used for a simple interaction test to deployed smart contract. It sends 50 cents in USDC from owner address to contract address 
@@ -534,27 +620,21 @@ function getInitialFundsMainCrypto(){
             }
         break;
 
-
-        
-        
-
-
-        
-        
-        //show main address
+        //show some main address
         case '10': 
             console.log("######### Mode 10 | SHOW MAIN ADDRESSES #########");
-            let uniswapV3ops = UniswapV3ops(GLOBAL);
-            let ownerFlashloan = await uniswapV3ops.getOwner();
+            let flashOps = new FlashloanerOps(GLOBAL);
+            let ownerFlashloan = await flashOps.getOwner();
             console.log("GLOBAL.ownerAddress: "+GLOBAL.ownerAddress);
-            console.log("flashloan Owner Address: "+ownerFlashloan);
+            console.log("Flashloan Owner Address: "+ownerFlashloan);
             console.log("DAItokenAddress: "+getERC20("DAI").address);
             console.log("RPC Provider URL: "+BlockchainConfig.network[GLOBAL.network].RPC_FLASHLOANER_PROVIDER);
             let chainId = await GLOBAL.web3Instance.eth.getChainId()
-            console.log("chainId = "+chainId);
+            console.log("ChainId = "+chainId);
         break;        
         
-        case '11': // get some pool addresses on UniswapV3
+        //get some pool addresses on UniswapV3
+        case '11': 
             try { 
                 console.log("######### Mode 11 | SHOW SOME UNISWAPV3 POOL ADDRESS #########");
                let uniOps = new UniswapV3ops(GLOBAL);
@@ -576,40 +656,12 @@ function getInitialFundsMainCrypto(){
                 throw (error);
             }
         break
-
-        case '12': // get some pool addresses on UniswapV3
+        
+                
+        // compare amount out using diferent fees on UniswapV3
+        case '13': 
             try { 
-               console.log("######### Mode 12 | UNISWAPV3 GET AMOUNT OUT LOCAL CALC #########");
-               let uniOps = new UniswapV3ops(GLOBAL); 
-               console.log("Get amount out 1 WETH -> USDC (0.3)");
-               
-               let usdcAmountOut = await uniOps.getAmountOut(1, getERC20("WETH"), getERC20("USDC"), 0.3);
-               console.log(usdcAmountOut);               
-               //console.log("Get amount out 1 WETH -> USDC (0.05)");
-               /* usdcAmountOut = await uniOps.getAmountOut(1000, getERC20("WETH"), getERC20("USDC"), 0.05);
-               console.log(usdcAmountOut);
-               console.log("Get amount out 1 WETH -> USDC (0.01)");
-               usdcAmountOut = await uniOps.getAmountOut(1000, getERC20("WETH"), getERC20("USDC"), 0.01);
-               console.log(usdcAmountOut);
-
-               console.log("Get amount out 1600 USDC -> WETH (0.3)");
-               let wethAmountOut = await uniOps.getAmountOut(1600, getERC20("USDC"), getERC20("WETH"), 0.3);
-               console.log(wethAmountOut);  
-               console.log("Get amount out 1600 USDC -> WETH (0.05)");
-               wethAmountOut = await uniOps.getAmountOut(1600, getERC20("USDC"), getERC20("WETH"), 0.05);
-               console.log(wethAmountOut);
-               console.log("Get amount out 1600 USDC -> WETH (0.01)");
-               wethAmountOut = await uniOps.getAmountOut(1600, getERC20("USDC"), getERC20("WETH"), 0.01);
-               console.log(wethAmountOut); */
-
-            } catch (error) {
-                throw (error);
-            }
-        break
-
-        case '13': // get amount out from pool addresses on UniswapV3
-            try { 
-               console.log("######### Mode 13 | UNISWAPV3 GET AMOUNT OUT FROM BLOCKCHAIN #########");
+               console.log("######### Mode 13 | UNISWAPV3 GET AMOUNT OUT and BEST FEE #########");
                let uniOps = new UniswapV3ops(GLOBAL); 
                
                console.log("Get amount out 1 WETH -> USDT (0.05)");
@@ -617,59 +669,16 @@ function getInitialFundsMainCrypto(){
                console.log("Get amount out 1 WETH -> USDT (0.3)");
                console.log(await uniOps.queryAmountOut(BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS, 1000, getERC20("WETH"), getERC20("USDT"), 0.3));
                console.log("Best fee:");
-               console.log(await uniOps.queryFeeOfBestRoute(1000, getERC20("WETH"), getERC20("USDT"))); 
+               console.log(await uniOps.queryFeeOfBestRoute(BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS, 1000, getERC20("WETH"), getERC20("USDT"))); 
  
 
             } catch (error) {
                 throw (error);
             }
         break
-
-        case '14': // get FEE of the best amount out
-            try { 
-               console.log("######### Mode 14 | UNISWAPV3 GET FEE of BEST AMOUNT OUT #########");
-               let uniOps = new UniswapV3ops(GLOBAL); 
-               
-               result = await uniOps.queryFeeOfBestRoute(BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV3_QUOTER_ADDRESS, 100, getERC20("WETH"), getERC20("USDT"));
-               console.log("best fee found:"+result.bestFee); 
-               console.log("blacklist: ");
-               console.table(result.updatedBlacklist); 
-
-               
-               /* console.log("Get amount out 1 WETH -> UNI (0.05)");
-               console.log(await uniOps.queryAmountOut(100, getERC20("WETH"), getERC20("UNI"), 0.05));
-               console.log("Get amount out 1 WETH -> UNI (0.3)");
-               console.log(await uniOps.queryAmountOut(100, getERC20("WETH"), getERC20("UNI"), 0.3));
-
-               console.log("Get amount out 1 UNI -> WETH (0.05)");
-               console.log(await uniOps.queryAmountOut(100, getERC20("UNI"), getERC20("WETH"), 0.05));
-
-               console.log("Get amount out 1 UNI -> WETH (0.3)");
-               console.log(await uniOps.queryAmountOut(100, getERC20("UNI"), getERC20("WETH"), 0.3));
-
-               console.log("Get amount out 1 UNI -> WETH (0.01)");
-               console.log(await uniOps.queryAmountOut(100, getERC20("UNI"), getERC20("WETH"), 0.01));
-  */
-
-            } catch (error) {
-                throw (error);
-            }
-        break
-
-        case '15': // uniswap v3 exps
-            try { 
-            console.log("######### Mode 15 | UNISWAPV3 AMOUNT OUT #########");
-            let uniOps = new UniswapV3ops(GLOBAL);            
-                        
-            console.log("Get amount out 1 USDT -> BTC (0.05)");
-            console.log(await uniOps.queryAmountOut(100, getERC20("USDT"), getERC20("BTC"), 0.05));
-
-            } catch (error) {
-                throw (error);
-            }
-        break
-
-        case '16': // get chain ID
+        
+        // get chain ID
+        case '16': 
             try { 
                 console.log("######### Mode 16 | chain ID #########");
                 let flashloanerContract = new FlashloanerOps(GLOBAL);            
@@ -680,42 +689,7 @@ function getInitialFundsMainCrypto(){
             }
         break
         
-        case '18': //POLYGON LOCAL DEV ONLY: exchange crypto MATIC by WMATIC, then WMATIC by WBTC on quickswap
-            try {
-                //amount of wraped to ken to be exchanged 
-                let amountWrapedTokenIn = 1000;
-                let tokenTo = getERC20("WBTC");
-                console.log(`######### Mode 18 | Exchange ${amountWrapedTokenIn} WMATIC -> WBTC on Quickswap #########`);
-
-                //instatiate quickswap dex
-                let DEX = {
-                    name: "quickswap", 
-                    routerContractAddress: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff", 
-                    factoryContractAddress: "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32",
-                    routerABI:BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV2_ROUTER_ABI,
-                    factoryABI:BlockchainConfig.blockchain[GLOBAL.blockchain].UNISWAPV2_FACTORY_ABI
-                }
-
-                //exchange crypto by wrapped crypto
-                let symbolWrappedMainCrypto = getWrappedMainCrypto();
-                let wrappedMainCrypto = getERC20(symbolWrappedMainCrypto); 
-                let currentCryptoBalance = await getCryptoBalanceOf(GLOBAL.ownerAddress);
-                await sendEth(GLOBAL.ownerAddress, wrappedMainCrypto.address, currentCryptoBalance-1); 
-                await showBalances(GLOBAL.ownerAddress)  
-
-                //exchange wrapped crypto by defined token above
-                let erc20Ops = new ERC20ops(GLOBAL);         
-                let uniOps = new UniswapV2ops(GLOBAL); 
-                await uniOps.swap(DEX, amountWrapedTokenIn, wrappedMainCrypto, tokenTo)  
-                console.log("### owner balances: ###")
-                console.log(` ${wrappedMainCrypto.symbol} balance ${await erc20Ops.getBalanceOfERC20(wrappedMainCrypto, GLOBAL.ownerAddress)}`);
-                console.log(`${tokenTo.symbol} balance ${await erc20Ops.getBalanceOfERC20(tokenTo, GLOBAL.ownerAddress)}`);
-                
-
-            } catch (error) {
-                throw (error);
-            }
-        break;
+        
         
 
         default:
