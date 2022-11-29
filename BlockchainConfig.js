@@ -27,37 +27,20 @@ exports.BlockchainConfig = {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8003",
 			BLOCKCHAIN: "ethereum",		
-		},
-
-		PolygonForkUpdate1: {
-			RPC_ARBITRAGEUR_PROVIDER: "http://127.0.0.1:8201",
-			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8201",
-			BLOCKCHAIN: "polygon",	
-		},
-		PolygonForkUpdate2: {
-			RPC_ARBITRAGEUR_PROVIDER: "http://127.0.0.1:8202",
-			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8202",
-			BLOCKCHAIN: "polygon",
-		},
-		PolygonForkUpdate3: {
-			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
-			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8203",
-			BLOCKCHAIN: "polygon",	
-		},
-
-		PolygonForkSpecBlock: {
-			RPC_ARBITRAGEUR_PROVIDER: "http://127.0.0.1:8202",
-			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8202",
-			BLOCKCHAIN: "polygon"
-			
-		},
-		
+		},		
 		EthereumMainnet: {
 			RPC_LOCAL_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
 			RPC_FLASHLOANER_PROVIDER: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
 			BLOCKCHAIN: "ethereum",
 			FORCE_GENERATE_PATH: false
 		},
+
+
+		PolygonForkSpecBlock: {
+			RPC_ARBITRAGEUR_PROVIDER: "http://127.0.0.1:8202",
+			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8202",
+			BLOCKCHAIN: "polygon"
+		},		
 		PolygonMainnet1: {
 			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_2,
@@ -81,7 +64,23 @@ exports.BlockchainConfig = {
 			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_2,
 			RPC_FLASHLOANER_PROVIDER: process.env.POLYGON_RPC_PROVIDER_1,
 			BLOCKCHAIN: "polygon",
-		},		
+		},	
+		
+		
+		//readme example networks 
+		PolygonBlockExample: {
+			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
+			RPC_ARBITRAGEUR_PROVIDER: process.env.POLYGON_RPC_PROVIDER_0,
+			RPC_FLASHLOANER_PROVIDER: process.env.POLYGON_RPC_PROVIDER_1,
+			BLOCKCHAIN: "polygon",
+		},	
+		EthereumBlockExample: {
+			FLASHLOANER_MAINNET_ADDRESS: String(process.env.POLYGON_FLASHLOANER_ADDRESS),
+			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_0,
+			RPC_FLASHLOANER_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
+			BLOCKCHAIN: "ethereum",
+		},	
+
 	},
 	blockchain: {
 		ethereum: {
