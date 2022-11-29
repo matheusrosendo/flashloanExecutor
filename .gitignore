@@ -9,8 +9,15 @@ database
 Networks/*
 
 # whitelist readme example folders
-!Networks/PolygonBlockExample
-!Networks/EthereumBlockExample
+!Networks/ExamplePolygonBlock
+!Networks/ExamplePolygonBlock/FlashloanInput/*
+!Networks/ExamplePolygonBlock/FlashloanOutput/Failed/*
+!Networks/ExampleEthereumBlock
+!Networks/ExampleEthereumBlock/FlashloanInput/*
+!Networks/ExampleEthereumBlock/FlashloanOutput/Failed/*
+!Networks/ExamplePolygonMainnet
+!Networks/ExamplePolygonMainnet/FlashloanInput/*
+!Networks/ExamplePolygonMainnet/FlashloanOutput/Failed/*
 
 execs
 old
