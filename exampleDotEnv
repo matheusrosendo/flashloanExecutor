@@ -1,0 +1,28 @@
+#keep FLASHLOANER_ADDRESSES blank to use local deployed address or set an address of a pre deployed contract
+ETHEREUM_FLASHLOANER_ADDRESS = 
+POLYGON_FLASHLOANER_ADDRESS = 
+
+#Main owner account data
+OWNER_MNEMONIC = 
+OWNER_ADDRESS = 
+OWNER_PK = 
+
+#config
+NETWORKS_FOLDER = Networks
+FLASHLOAN_INPUT_FOLDER = FlashloanInput
+FLASHLOAN_OUTPUT_FOLDER = FlashloanOutput
+FLASHLOAN_FOLDER_FAILED = Failed
+
+#used for local fork only (Mode 1)
+ETH_AMOUNT_INITIAL_FUND_ON_FORK = 5
+WMATIC_AMOUNT_INITIAL_FUND_ON_FORK = 200
+
+#ETHEREUM RPC providers
+ETHEREUM_RPC_PROVIDER_0 = #to be used by a arbitrage finder bot (not covered in this project)
+ETHEREUM_RPC_PROVIDER_1 = 
+
+#Polygon RPC providers
+POLYGON_RPC_PROVIDER_0 = #to be used by a arbitrage finder bot (not covered in this project)
+POLYGON_RPC_PROVIDER_1 = #provide a private or public RPC provider, like: https://polygon-rpc.com 
+
+
