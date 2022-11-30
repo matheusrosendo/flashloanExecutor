@@ -10,10 +10,10 @@ if(!BlockchainConfig.network[network]){
 	throw new Error("Truffle error: undefined network "+network);
 }
 let RPCprovider = new HDWalletProvider(process.env.OWNER_PK, BlockchainConfig.network[network].RPC_FLASHLOANER_PROVIDER);
-let networkCheckTimeout = 1000000000;
-let timeoutBlocks = 10000000;
-let gas = 10000000; //gas used to deploy Flashloaner contract 3718485. Default is 6721975
-let gasPrice = 30_000_000_000 //defult is 20gwei
+let networkCheckTimeout = 1_000_000_000;
+let timeoutBlocks = 10_000_000;
+let gas = 10_000_000; //max gas that can be used for deploy, Flashloaner contract uses aproximately 3.7mi
+let gasPrice = 120_000_000_000 //(120 gwei)
 
 module.exports = {
 	// See <http://truffleframework.com/docs/advanced/configuration> to customize your Truffle configuration!

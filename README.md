@@ -60,9 +60,10 @@
 ## How to deploy the Flashloaner smart contract on Polygon Mainnet
 > in order to test the interaction with the deployed smart contract, the following steps will guide you to send to it a few cents of USDC and withdraw it later
 * Send a few MATIC to your address to pay for fees (1 MATIC is enough)
-* In order to test the contract send a few USDC to your address (1 USDC is enough)
+* Send a few USDC to your address (1 USDC is enough)
+* Check current gwei price for trasnsaction https://polygonscan.com/gastracker and set variable gasPrice truffle-config
 * Deploy contract: `truffle migrate --reset --network ExamplePolygonMainnet` (it may take some time, 5 minutes or more)
-* Copy the deployd contract address and paste it in the .env file (POLYGON_FLASHLOANER_ADDRESS). You can also check it out on https://polygonscan.com
+* Copy the deployed contract address and paste it in the .env file (POLYGON_FLASHLOANER_ADDRESS). You can also check it out on https://polygonscan.com making a search for this address there 
 * Send 50 cents to contract executing mode 7: `node .\Flashloaner.js 7 ExamplePolygonMainnet` 
 * Verify if transaction happened successfully and check your account and contract balances on https://polygonscan.com
 * Withdraw sent amount in USDC executing mode 8: `node .\Flashloaner.js 8 ExamplePolygonMainnet`
