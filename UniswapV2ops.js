@@ -197,12 +197,15 @@ class UniswapV2ops {
 
                 //encode method 
                 let dataSwap = swapRouterContract.methods.swapExactTokensForTokens(amountInWei, 1, path, this.GLOBAL.ownerAddress, deadline).encodeABI(); 
-                    
+                
+                //set max fee, double current gas price 
+                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 2);
+
                 //declare raw tx to withdraw
                 let rawSwapTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: swapRouterAddress,
-                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                    maxFeePerGas: String(maxFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_HIGH,
                     data: dataSwap
                 };

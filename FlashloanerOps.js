@@ -37,13 +37,16 @@ class FlashloanerOps {
                             
                 //encode withdraw method 
                 let dataWithdraw = this.contractInstance.methods.withdraw(_token.address).encodeABI(); 
-            
+                
+                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 2);
+                let maxPriorityFeePerGas = parseInt(maxFeePerGas / 3);
+
                 //declare raw tx to withdraw
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
-                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
-                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS,
+                    maxFeePerGas: maxFeePerGas,
+                    maxPriorityFeePerGas: maxPriorityFeePerGas,
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataWithdraw
                 };
@@ -110,7 +113,7 @@ class FlashloanerOps {
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
-                console.log(`### Executing flashloan on ${_parsedJson.flashloanInputData.flashLoanSource} NEW INPUT | $${Number(_parsedJson.initialAmountInUSD).toFixed(2)} => ${JSON.stringify(_parsedJson.route)}  ###`); 
+                console.log(`### Executing flashloan on ${_parsedJson.flashloanInputData.flashLoanSource} | $${Number(_parsedJson.initialAmountInUSD).toFixed(2)} => ${JSON.stringify(_parsedJson.route)}  ###`); 
                 let amountToBorrowOfFirstToken = Util.amountToBlockchain(_parsedJson.initialTokenAmount, _parsedJson.initialTokenDecimals);
 
                 //include amount on input data
@@ -126,13 +129,15 @@ class FlashloanerOps {
                     reject("Invalid flashloan souce on flashloanInputData!");
                 }
                 
-            
+                //set MaxFeePerGas as double the current average price per gas, and tip miners with 1/3 of this value
+                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 2);
+                let maxPriorityFeePerGas = parseInt(maxFeePerGas / 3);
                 //declare raw tx 
                 let rawFlashloanTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
-                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
-                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS * 2, //double tip to miners to put transaction in priority
+                    maxFeePerGas: String(maxFeePerGas),
+                    maxPriorityFeePerGas: String(maxPriorityFeePerGas), 
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_HIGH,
                     data: encodedMethod
                 };

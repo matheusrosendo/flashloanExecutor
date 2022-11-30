@@ -61,8 +61,9 @@
 > in order to test the interaction with the deployed smart contract, the following steps will guide you to send to it a few cents of USDC and withdraw it later
 * Send a few MATIC to your address to pay for fees (1 MATIC is enough)
 * Send a few USDC to your address (1 USDC is enough)
-* Check current gwei price for trasnsaction https://polygonscan.com/gastracker and set variable gasPrice truffle-config
+* Check current average gwei price for trasnsaction https://polygonscan.com/chart/gasprice and set variable `gasPricePolygon` in truffle-config.js
 * Deploy contract: `truffle migrate --reset --network ExamplePolygonMainnet` (it may take some time, 5 minutes or more)
+> if you receive a message like `Transaction was not mined within 750 seconds`, wait some minutes, copy hash transaction and check it out on https://polygonscan.com
 * Copy the deployed contract address and paste it in the .env file (POLYGON_FLASHLOANER_ADDRESS). You can also check it out on https://polygonscan.com making a search for this address there 
 * Send 50 cents to contract executing mode 7: `node .\Flashloaner.js 7 ExamplePolygonMainnet` 
 * Verify if transaction happened successfully and check your account and contract balances on https://polygonscan.com

@@ -111,11 +111,12 @@ function sendEth(_from, _to, _amount, ownerPk = String(process.env.OWNER_PK)){
     //handle response tx
     let txPromise = new Promise(async (resolve, reject) =>{            
         try {
+            let maxFeePerGas = parseInt((await GLOBAL.web3Instance.eth.getGasPrice()) * 2);
             let rawTx = {
                 from: _from, 
                 to: _to, 
                 value: Util.amountToBlockchain(_amount, 18),
-                maxFeePerGas: BlockchainConfig.blockchain[GLOBAL.blockchain].MAX_FEE_PER_GAS,
+                maxFeePerGas: maxFeePerGas,
                 gasLimit: BlockchainConfig.blockchain[GLOBAL.blockchain].GAS_LIMIT_LOW,
             };
         
@@ -487,9 +488,10 @@ function getInitialFundsMainCrypto(){
                                                 console.log(serializedFile.content.result);
                                             }).catch (async (error) => {
                                                 //serialize log file with the error
+                                                error.blockNumber = await getCurrentBlock(GLOBAL.network);
                                                 serializedFile = await Files.serializeFlashloanResult(error, parsedJson, completeFileName, path.join(__dirname, process.env.NETWORKS_FOLDER, GLOBAL.network, process.env.FLASHLOAN_OUTPUT_FOLDER, process.env.FLASHLOAN_FOLDER_FAILED), oldDaiBalance, oldDaiBalance);
                                                 console.log("##### Execution failed: #####")
-                                                console.log(error.details);
+                                                console.log(error);
                                             })
                                         }
                                     } catch (error) {
@@ -520,9 +522,9 @@ function getInitialFundsMainCrypto(){
         case '6': 
             try {
                 //amount of wraped to ken to be exchanged 
-                let amountWrapedTokenIn = 1000;
+                let amountWrapedTokenIn = 900;
                 let tokenTo = getERC20("WBTC");
-                console.log(`######### Mode 18 | Exchange ${amountWrapedTokenIn} WMATIC -> WBTC on Quickswap #########`);
+                console.log(`######### Mode 6 | Exchange ${amountWrapedTokenIn} WMATIC -> WBTC on Quickswap #########`);
 
                 //instatiate quickswap dex
                 let DEX = {
