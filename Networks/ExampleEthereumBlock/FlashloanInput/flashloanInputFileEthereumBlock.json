@@ -1,0 +1,80 @@
+{
+  "network": "EthereumForkSpecBlock",
+  "RPCprovider": "http://127.0.0.1:8101",
+  "blockNumber": 15951507,
+  "initialAmountInUSD": 81000,
+  "estimatedProfit$": 1405.0443999052513,
+  "estimatedProfit%": 1.734622715932409,
+  "route": [
+    "DAI_INIT",
+    "DAI_1",
+    "DAI_3",
+    "USDC_3",
+    "ETH_3",
+    "ETH_0",
+    "DAI_0",
+    "DAI_2",
+    "USDC_2",
+    "USDC_0",
+    "DAI_END_0",
+    "DAI_FINAL"
+  ],
+  "initialTokenDecimals": 18,
+  "initialTokenAmount": 81000,
+  "flashloanInputData": {
+    "flashLoanSource": "Dodo",
+    "flashLoanPool": "0x3058EF90929cb8180174D74C507176ccA6835D73",
+    "swaps": [
+      {
+        "protocolTypeIndex": 3,
+        "routerAddress": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+        "tokenInAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        "tokenOutAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "fee": 100
+      },
+      {
+        "protocolTypeIndex": 3,
+        "routerAddress": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+        "tokenInAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "tokenOutAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "fee": 500
+      },
+      {
+        "protocolTypeIndex": 2,
+        "routerAddress": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+        "tokenInAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "tokenOutAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        "fee": 3000
+      },
+      {
+        "protocolTypeIndex": 1,
+        "routerAddress": "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7",
+        "tokenInAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        "tokenOutAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "fee": 400
+      },
+      {
+        "protocolTypeIndex": 2,
+        "routerAddress": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+        "tokenInAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "tokenOutAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        "fee": 3000
+      }
+    ],
+    "loanAmount": "81000000000000000000000"
+  },
+  "estimatedSwapDetails": [
+    "DAI => USDC = 80992.2554 on uniswapV3 fee: 0.01  | Prices: $[1.00, $1.00]",
+    "USDC => ETH = 64.4281 on uniswapV3 fee: 0.05  | Prices: $[1.00, $1164.67]",
+    "ETH => DAI = 82133.2774 on uniswapV2 fee: 0.3  | Prices: $[1164.67, $1.00] | Price impact: -1.22% ",
+    "DAI => USDC = 82126.1382 on curve fee: 0.04  | Prices: $[1.00, $1.00] | Price impact: -0.01% ",
+    "USDC => DAI = 82405.0444 on uniswapV2 fee: 0.3  | Prices: $[1.00, $1.00] | Price impact: -0.46% ",
+    "81000.00 => [\"DAI_INIT\",\"DAI_1\",\"DAI_3\",\"USDC_3\",\"ETH_3\",\"ETH_0\",\"DAI_0\",\"DAI_2\",\"USDC_2\",\"USDC_0\",\"DAI_END_0\",\"DAI_FINAL\"] => 82405.04"
+  ],
+  "investigatedTokens": [
+    "DAI",
+    "ETH",
+    "USDC",
+    "DAI_END"
+  ]
+}

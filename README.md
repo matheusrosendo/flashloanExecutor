@@ -1,14 +1,14 @@
 # Flashloaner
 ![Licence](https://img.shields.io/github/license/matheusrosendo/TokenizationLabFixedSupply)
 > :warning: **Disclaimer**: That project is for educational purposes, use at your own risk
-> A Solidity / Javascript (node.js) based project aimed to read a json file containing flashloan input data and to execute flashloan taking loans from AAVE or DODO on Polygon or Ethereum and making swaps on UniswapV2, Curve, UniswapV2 exchanges or its offspring (Quick, Sushi, etc) etc
+> A Solidity / Javascript (node.js) based project aimed to read a json file containing flashloan input data and to execute flashloan taking loans from AAVE or DODO on Polygon or Ethereum and making swaps on UniswapV2, Curve, UniswapV2 exchanges or its offspring (Quick, Sushi, etc).
 
 ## Important files
 ```
 - BlockchainConfig.js: it has all the information about the blockchain you are are deploying to: main token list, ABI and addresses of the DEX, networkID, gas info and so on
 - truffle-config.js: configuration file of Truffle, in this project it reads info like RPC provider from BlockchainConfig.js, for more info about truffle, visit https://trufflesuite.com/docs/truffle/quickstart/ 
 - Flashloaner.js Node js main file with diferent modes to comunicate with blockchain, including, swap tokens, checkbalances and the main part of the project (mode 5), that is parsing the input flashloan file and calling the smart contract to execute it
-- Flashloaner.sol: the smart contract containing all logic to execute the flashloan on both blockchains, Polygon or Ethereum. By default it takes loan from a DODO pool, because there is no fees charged, but it also works taking loan from AAVE pools. It process all swaps contained in the input parameter read from the flashloan input json file.
+- Flashloaner.sol: the smart contract containing all logic to execute the flashloan on both blockchains, Polygon or Ethereum. By default it takes loan from a DODO pool, because there is no fees charged, but it also works taking loan from AAVE pools. It process all swaps contained in the input parameter read from the flashloan input json file. By the end of execution profit is sent back to contract owner (creator of the contract and sender of the transaction)
 - contracts files: all files in this folder is used by Flashloaner.sol, some interfaces were created, other get straight from oficial github repos of the Defis used here (UniswapV2, Dodo, UniswapV3, Curve, Aave), just like openzeppelin libraries. Some files neeeded a few adjustments in order to all complain the solidity 0.8 version.
 - FlashloanInputFileExample.json: it must contain an object called *initialTokenDecimals*,  *initialTokenAmount*, *flashloanInputData* with the following data:
   - flashLoanSource: Name of the source (Dodo or Aave)
@@ -33,9 +33,14 @@
 
 
 ## How to execute a known profitable route in a forked local Ethereum on a specific block
-> Here the idea is to execute a known profitable route found by my arbitrageur bot in a specific block (15951506) of ethereum mainnet.
-* Make a local Ethereum fork: `ganache-cli --fork https://polygon-rpc.com@36066000 -p 8001 --db Networks\ExampleEthereumBlock\db
-to be continued ...
+> Here the idea is to execute a known profitable route found by my arbitrageur bot (not covered here) in a specific block (15951506) of ethereum mainnet.
+* Make a local Ethereum fork replacing YOUR_RPC_PROVIDER and YOUR_MNEMONIC: ganache-cli --fork YOUR_RPC_PROVIDER -p 8501 --db Networks\ExampleEthereumBlock\db -m YOUR_MNEMONIC
+* Open a new terminal and deploy Flashloaner smart contract on local fork blockchain just created: `truffle migrate --reset --network ExamplePolygonBlock`
+* Try to execute the route contained in the flashloan json file : `node .\Flashloaner.js 5 ExampleEthereumBlock Networks\ExampleEthereumBlock\FlashloanInput`
+* Check out your owner account balances: `node .\Flashloaner.js 4 ExamplePolygonBlock`
+* If it worked Ok you should be able to see 1405 USDC in your account as result of this execution. 
+> Which means that if it was executed realtime when block 15951506 was the current block, that profit of 1405 USDC would probably be the result
+ 
 
 
 ## How to test the Flashloaner smart contract on forked local Polygon simulating a profitable route
@@ -48,9 +53,9 @@ to be continued ...
 * Check out your owner account balances: `node .\Flashloaner.js 4 ExamplePolygonBlock`
 * Exchange MATIC by WMATIC, them WMATIC by WBTC: `node .\Flashloaner.js 6 ExamplePolygonBlock`
 * Check again owner balances, you should have some WBTC now: `node .\Flashloaner.js 4 ExamplePolygonBlock`
-* Execute again Flashloaner: `node .\Flashloaner.js 5 ExamplePolygonBlock ExamplePolygonBlock\FlashloanInput`
-> if everything worked fine the expected result will be a flashloan execute with profit and a log file created on FlashloanOutput with the result
-* Check owner balances one more time, now you should have the profit of the execution in USDC: `node .\Flashloaner.js 4 ExamplePolygonBlock`
+* Execute again Flashloaner: `node .\Flashloaner.js 5 ExamplePolygonBlock Networks\ExamplePolygonBlock\FlashloanInput`
+> if everything worked fine the expected result will be a flashloan execution with profit and a log file created on FlashloanOutput with the result
+* Check owner balances one more time, now you should have the profit of this execution in USDC: `node .\Flashloaner.js 4 ExamplePolygonBlock`
 
 
 ## How to deploy the Flashloaner smart contract on Polygon Mainnet
