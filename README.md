@@ -23,25 +23,24 @@
  
 ## Prerequisites
 * Clone this repository: `git clone --branch LATEST-TAG https://github.com/matheusrosendo/flashloanExecutor.git`
-* Rename exampleDotEnv to .env
-* Make sure .env is in your .gitignore file and will not be acessed by anyone else if it will contain PK and/or mnemonic of real account with valueable assets
 * Enter main folder and install dependencies: `npm install`
+* Rename exampleDotEnv to .env
+> Make sure .env is in your .gitignore file and will not be acessed by anyone else if it will contain PK and/or mnemonic of real account with valueable assets
 * Copy your mnemonic, address, PK and paste it into the .env file
-> If you are going to deploy on mainnets you need to set RPC_PROVIDERS (steps below). In this case it is advised to create a brand new account, you can use metamask.io for that
+> If you are going to deploy on mainnets you need to set RPC_PROVIDERS (steps below). In this case it is advised to also create a brand new account to be used only for that purpose, you can use metamask.io for that
 * * Fill POLYGON_RPC_PROVIDER_1 with your Polygon RPC provider. https://www.quicknode.com provides frontrunning protection, so it is a good option for that, you can also use a public one like https://polygon-rpc.com
-* * Fill also ETHEREUM_RPC_PROVIDER_1 if you are going to deploy on a ethereum local fork or on ethereum mainnet. Some free options are: quicknode, alchemy, infura, getblock
+* * Fill also ETHEREUM_RPC_PROVIDER_1 if you are going to deploy on ethereum mainnet. Some free options are: quicknode, alchemy, infura, getblock
 
 
 ## How to execute a known profitable route in a forked local Ethereum on a specific block
 > Here the idea is to execute a known profitable route found by my arbitrageur bot (not covered here) in a specific block (15951506) of ethereum mainnet.
-* Make a local Ethereum fork replacing YOUR_RPC_PROVIDER and YOUR_MNEMONIC: ganache-cli --fork YOUR_RPC_PROVIDER -p 8501 --db Networks\ExampleEthereumBlock\db -m YOUR_MNEMONIC
-* Open a new terminal and deploy Flashloaner smart contract on local fork blockchain just created: `truffle migrate --reset --network ExamplePolygonBlock`
-* Try to execute the route contained in the flashloan json file : `node .\Flashloaner.js 5 ExampleEthereumBlock Networks\ExampleEthereumBlock\FlashloanInput`
+* Make a local Ethereum fork replacing YOUR_RPC_PROVIDER and YOUR_MNEMONIC: `ganache-cli --fork YOUR_RPC_PROVIDER@15951506 -p 8501 --db Networks\ExampleEthereumBlock\database -m YOUR_MNEMONIC`
+* Open a new terminal and deploy Flashloaner smart contract on local fork blockchain just created: `truffle migrate --reset --network ExampleEthereumBlock`
+* Execute the route contained in the flashloan json file (flashloanInputFileEthereumBlock.json) : `node .\Flashloaner.js 5 ExampleEthereumBlock Networks\ExampleEthereumBlock\FlashloanInput`
 * Check out your owner account balances: `node .\Flashloaner.js 4 ExamplePolygonBlock`
 * If it worked Ok you should be able to see 1405 USDC in your account as result of this execution. 
-> Which means that if it was executed realtime when block 15951506 was the current block, that profit of 1405 USDC would probably be the result
+> Which means that if it was executed realtime on Ethereum mainnet when block 15951506 was the current block, that profit of 1405 USDC would probably be the result
  
-
 
 ## How to test the Flashloaner smart contract on forked local Polygon simulating a profitable route
 > Create a mirror of the current state of the mainnet blockchain, Polygon in this case, and artificially generate an arbitrage oportunity trading a considerable amount of the token in (WMATIC) to token out (WBTC) using a pair pool of a UniswapV2 type DEX, in this case we are going to use Quickswap and the pool WMATIC / WBTC. Specifically at the block to be forked here (36066000), this pool pair had about only 11k USD tvl (total value locked) with approximatelly 7k WMATIC and 0.36 BTC. So the idea is to exchange 1k WMATIC to WBTC generating an artificial local arbitrage oportunity passing through this pair, then execute the deployed Flashloaner contract locally checking out the results before and after that.
@@ -62,12 +61,12 @@
 > in order to test the interaction with the deployed smart contract, the following steps will guide you to send to it a few cents of USDC and withdraw it later
 * Send a few MATIC to your address to pay for fees (1 MATIC is enough)
 * In order to test the contract send a few USDC to your address (1 USDC is enough)
-* Deploy contract: `truffle migrate --reset --network PolygonMainnet1` (it may take some time, 5 minutes or more)
+* Deploy contract: `truffle migrate --reset --network ExamplePolygonMainnet` (it may take some time, 5 minutes or more)
 * Copy the deployd contract address and paste it in the .env file (POLYGON_FLASHLOANER_ADDRESS). You can also check it out on https://polygonscan.com
-* Send 50 cents to contract executing mode 7: `node .\Flashloaner.js 7 PolygonMainnet1` 
+* Send 50 cents to contract executing mode 7: `node .\Flashloaner.js 7 ExamplePolygonMainnet` 
 * Verify if transaction happened successfully and check your account and contract balances on https://polygonscan.com
-* Withdraw sent amount in USDC executing mode 8: `node .\Flashloaner.js 8 PolygonMainnet1`
+* Withdraw sent amount in USDC executing mode 8: `node .\Flashloaner.js 8 ExamplePolygonMainnet`
 * Check it out the balances again. If the amount is back in your account with no failed transactions, flashloaner is set and should be ready to execute any routes with an amount out superior to the amount in
-* You can try to execute the example file straight on mode 5 by the following command: `node .\Flashloaner.js 5 PolygonMainnet1 PolygonMainnet1\FlashloanInput` 
+* You can try to execute the example file straight on mode 5 by the following command: `node .\Flashloaner.js 5 ExamplePolygonMainnet ExamplePolygonMainnet\FlashloanInput` 
 > warning: since it will only execute profitable routes, the expected result will be a message like this: *FLASHLOAN ABORTED: verified amount out TOKEN inferior to initial amount*
 * Now you can start the chalenging part: building a bot to find those profitable precious routes in real time and write a json with the input flashloan data to be executed by Mode 5 :+1:
