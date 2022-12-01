@@ -23,7 +23,7 @@
 ```
  
 ## Prerequisites
-* Clone this repository: `git clone --branch LATEST-TAG https://github.com/matheusrosendo/flashloanExecutor.git`
+* Clone this repository: `git clone --branch https://github.com/matheusrosendo/flashloanExecutor.git`
 * Enter main folder and install dependencies: `npm install`
 * Rename exampleDotEnv to .env
 > Make sure .env is in your .gitignore file and will not be acessed by anyone else if it will contain PK and/or mnemonic of real account with valueable assets
