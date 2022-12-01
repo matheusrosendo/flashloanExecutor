@@ -95,9 +95,7 @@ exports.BlockchainConfig = {
 			
 			GAS_LIMIT_LOW: 100_000,
 			GAS_LIMIT_HIGH: 1_000_000,
-			MAX_FEE_PER_GAS: 100_000_000_000, //(100 gwei)
-			MAX_PRIORITY_FEE_PER_GAS: 5_000_000_000, //tips to miners to include transaction faster, tipically 2gwei on ethereum
-
+			
 			FLASHLOAN_SOURCE: "Dodo",
 			FLASHLOAN_POOL_ADDRESS: "0x3058EF90929cb8180174D74C507176ccA6835D73",
 			
@@ -200,8 +198,6 @@ exports.BlockchainConfig = {
 			
 			GAS_LIMIT_LOW: 500_000,
 			GAS_LIMIT_HIGH: 5_000_000,
-			MAX_FEE_PER_GAS: "100000000000", //100 gwei
-			MAX_PRIORITY_FEE_PER_GAS: "30000000000", //30gwei
 			
 			//flashloan data
 			FLASHLOAN_POOL_ADDRESS: "0x5333Eb1E32522F1893B7C9feA3c263807A02d561", //DODO flashloan source (USDC pool)

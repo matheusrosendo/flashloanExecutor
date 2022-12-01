@@ -79,13 +79,15 @@ class ERC20ops {
                
                 //encode transfer method 
                 let dataTransfer = contract.methods.transfer(_to, Util.amountToBlockchain(_amount, _erc20.decimals)).encodeABI(); 
-            
+                
+                //set max fee, 50% more current gas price
+                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 1.5);
+
                 //declare raw tx to transfer
                 let rawTransferTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: contract._address,
-                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
-                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS,
+                    maxFeePerGas: String(maxFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataTransfer
                 };
@@ -178,13 +180,15 @@ class ERC20ops {
 
                 //encode withdraw method 
                 let dataWithdraw = wethContract.methods.withdraw(Util.amountToBlockchain(_amount)).encodeABI(); 
-            
+                
+                //set max fee, 50% more current gas price
+                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 1.5);
+
                 //declare raw tx to withdraw
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: wethContract._address,
-                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
-                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS,
+                    maxFeePerGas: String(maxFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataWithdraw
                 };
@@ -224,12 +228,14 @@ class ERC20ops {
                 let contractInstance = await this.getERC20singleton(_token);
                 let dataApprove = contractInstance.methods.approve(_spender, Util.amountToBlockchain(_amount, _token.decimals)).encodeABI(); 
                 
+                //set max fee, 50% more current gas price
+                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 1.5);
+
                 //declare raw tx to approve
                 let rawApproveTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: contractInstance._address,
-                    maxFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_FEE_PER_GAS,
-                    maxPriorityFeePerGas: BlockchainConfig.blockchain[this.GLOBAL.blockchain].MAX_PRIORITY_FEE_PER_GAS,
+                    maxFeePerGas: String(maxFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataApprove
                 };
