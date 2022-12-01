@@ -111,12 +111,15 @@ function sendEth(_from, _to, _amount, ownerPk = String(process.env.OWNER_PK)){
     //handle response tx
     let txPromise = new Promise(async (resolve, reject) =>{            
         try {
-            let maxFeePerGas = parseInt((await GLOBAL.web3Instance.eth.getGasPrice()) * 2);
+            //sets maxFeePerGas and maxPriorityFeePerGas, lesser values were generating 'transaction underpriced' error on Polygon mainnet 
+            let maxPriorityFeePerGas = await GLOBAL.web3Instance.eth.getGasPrice();
+            let maxFeePerGas = maxPriorityFeePerGas * 3;
             let rawTx = {
                 from: _from, 
                 to: _to, 
                 value: Util.amountToBlockchain(_amount, 18),
-                maxFeePerGas: maxFeePerGas,
+                maxFeePerGas: String(maxFeePerGas),
+                maxPriorityFeePerGas: String(maxPriorityFeePerGas),
                 gasLimit: BlockchainConfig.blockchain[GLOBAL.blockchain].GAS_LIMIT_LOW,
             };
         
@@ -524,7 +527,7 @@ function getInitialFundsMainCrypto(){
                 //amount of wraped to ken to be exchanged 
                 let amountWrapedTokenIn = 900;
                 let tokenTo = getERC20("WBTC");
-                console.log(`######### Mode 6 | Exchange ${amountWrapedTokenIn} WMATIC -> WBTC on Quickswap #########`);
+                console.log(`######### Mode 6 | Exchange ${amountWrapedTokenIn} MATIC -> WMATIC -> WBTC on Quickswap #########`);
 
                 //instatiate quickswap dex
                 let DEX = {
@@ -538,8 +541,7 @@ function getInitialFundsMainCrypto(){
                 //exchange crypto by wrapped crypto
                 let symbolWrappedMainCrypto = getWrappedMainCrypto();
                 let wrappedMainCrypto = getERC20(symbolWrappedMainCrypto); 
-                let currentCryptoBalance = await getCryptoBalanceOf(GLOBAL.ownerAddress);
-                await sendEth(GLOBAL.ownerAddress, wrappedMainCrypto.address, currentCryptoBalance-1); 
+                await sendEth(GLOBAL.ownerAddress, wrappedMainCrypto.address, amountWrapedTokenIn); 
                 await showBalances(GLOBAL.ownerAddress)  
 
                 //exchange wrapped crypto by defined token above
@@ -623,6 +625,37 @@ function getInitialFundsMainCrypto(){
                 throw (error);
             }
         break;
+
+        // Withdraws wrapped crypto back to main crypto
+        // Ex: node .\Flashloaner.js 8 PolygonMainnet1
+        case '9': 
+            try { 
+                console.log("######### Mode 9 | EXCHANGE WRAPPED CRYPTO (ERC20) BACK TO MAIN CRYPTO  #########");
+                let erc20ops = new ERC20ops(GLOBAL);
+                let amountIn = 0.1;
+                let wrappedCryptoSymbol = getWrappedMainCrypto();
+                let wrappedCrypto = getERC20(wrappedCryptoSymbol);
+                let currentBalance = await erc20ops.getBalanceOfERC20(wrappedCrypto, GLOBAL.ownerAddress);
+                if(currentBalance == 0){
+                    console.log(`There is no ${wrappedCrypto.symbol} in the owner balance!`)
+                } else {
+                    await erc20ops.withdrawCryptofromWrappedCrypto(amountIn, wrappedCrypto).then((receipt)=>{
+                        console.log(`${wrappedCrypto.symbol} withdrawn successfully`);
+                        console.log(receipt.transactionHash);
+                    }).catch((failedTx)=>{
+                        console.log("Failed transaction:");
+                        console.log(failedTx);
+                    }).finally(async ()=>{
+                        await showBalances(GLOBAL.ownerAddress)   
+                    }) 
+                }                
+            } catch (error) {
+                throw (error);
+            }
+        break;
+
+
+
 
         //show some main address
         case '10': 

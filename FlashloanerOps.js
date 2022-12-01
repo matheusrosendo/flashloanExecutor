@@ -15,10 +15,12 @@ class FlashloanerOps {
     constructor (_GLOBAL){
         this.loggerBalanceEventABI = [ {type: 'uint256', name: 'oldBalance'}, {type: 'uint256', name: 'newBalance'} ];
         this.GLOBAL = _GLOBAL;
-        let flashloanerAddress = Flashloan.networks[this.GLOBAL.networkId].address;
+        let flashloanerAddress;
         //it uses the FLASHLOANER address set in .env file, if it is set, else uses the local deployed contract 
         if(this.GLOBAL.flashloanerDeployedAddressMainnet){
             flashloanerAddress = this.GLOBAL.flashloanerDeployedAddressMainnet;
+        } else {
+            flashloanerAddress = Flashloan.networks[this.GLOBAL.networkId].address;
         }
         this.contractInstance = new this.GLOBAL.web3Instance.eth.Contract(Flashloan.abi, flashloanerAddress, { from: this.GLOBAL.ownerAddress })
     }
@@ -38,15 +40,16 @@ class FlashloanerOps {
                 //encode withdraw method 
                 let dataWithdraw = this.contractInstance.methods.withdraw(_token.address).encodeABI(); 
                 
-                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 2);
-                let maxPriorityFeePerGas = parseInt(maxFeePerGas / 3);
+                //sets maxFeePerGas and maxPriorityFeePerGas, lesser values were generating 'transaction underpriced' error on Polygon mainnet 
+                let maxPriorityFeePerGas = await this.GLOBAL.web3Instance.eth.getGasPrice();
+                let maxFeePerGas = maxPriorityFeePerGas * 3;
 
                 //declare raw tx to withdraw
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: this.contractInstance._address,
-                    maxFeePerGas: maxFeePerGas,
-                    maxPriorityFeePerGas: maxPriorityFeePerGas,
+                    maxFeePerGas: String(maxFeePerGas),
+                    maxPriorityFeePerGas: String(maxPriorityFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataWithdraw
                 };
@@ -129,9 +132,10 @@ class FlashloanerOps {
                     reject("Invalid flashloan souce on flashloanInputData!");
                 }
                 
-                //set MaxFeePerGas as double the current average price per gas, and tip miners with 1/3 of this value
-                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 2);
-                let maxPriorityFeePerGas = parseInt(maxFeePerGas / 3);
+                //sets maxFeePerGas and maxPriorityFeePerGas, 3 times more fees to execute faster
+                let maxPriorityFeePerGas = await this.GLOBAL.web3Instance.eth.getGasPrice() * 3;
+                let maxFeePerGas = maxPriorityFeePerGas * 3;
+
                 //declare raw tx 
                 let rawFlashloanTx = {
                     from: this.GLOBAL.ownerAddress, 

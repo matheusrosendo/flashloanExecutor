@@ -80,14 +80,16 @@ class ERC20ops {
                 //encode transfer method 
                 let dataTransfer = contract.methods.transfer(_to, Util.amountToBlockchain(_amount, _erc20.decimals)).encodeABI(); 
                 
-                //set max fee, 50% more current gas price
-                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 1.5);
+                //sets maxFeePerGas and maxPriorityFeePerGas, lesser values were generating 'transaction underpriced' error on Polygon mainnet 
+                let maxPriorityFeePerGas = await this.GLOBAL.web3Instance.eth.getGasPrice();
+                let maxFeePerGas = maxPriorityFeePerGas * 3;
 
                 //declare raw tx to transfer
                 let rawTransferTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: contract._address,
                     maxFeePerGas: String(maxFeePerGas),
+                    maxPriorityFeePerGas: String(maxPriorityFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataTransfer
                 };
@@ -165,30 +167,31 @@ class ERC20ops {
      * @param {*} _amount 
      * @returns transaction (Promise)
      */
-    async withdrawEthfromWeth(_amount){
-        Util.assertValidInputs([_amount], "withdrawEthfromWeth");
+    async withdrawCryptofromWrappedCrypto(_amount, _wrappedToken){
+        Util.assertValidInputs([_amount, _wrappedToken], "withdrawCryptofromWrappedCrypto");
         //handle response tx
         let txPromise = new Promise(async (resolve, reject) =>{ 
             try {            
                             
                 //instanctiate erc20 contract
-                let tokenWeth = getItemFromTokenList("symbol", "WETH", this.GLOBAL.tokenList);
-                let wethContract = this.getERC20singleton(tokenWeth);
+                let wrappedContract = this.getERC20singleton(_wrappedToken);
                 
                 //approve erc20 contract
-                await this.approve(tokenWeth, wethContract._address, _amount);
+                await this.approve(_wrappedToken, wrappedContract._address, _amount);
 
                 //encode withdraw method 
-                let dataWithdraw = wethContract.methods.withdraw(Util.amountToBlockchain(_amount)).encodeABI(); 
+                let dataWithdraw = wrappedContract.methods.withdraw(Util.amountToBlockchain(_amount)).encodeABI(); 
                 
-                //set max fee, 50% more current gas price
-                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 1.5);
+                //sets maxFeePerGas and maxPriorityFeePerGas, lesser values were generating 'transaction underpriced' error on Polygon mainnet 
+                let maxPriorityFeePerGas = await this.GLOBAL.web3Instance.eth.getGasPrice();
+                let maxFeePerGas = maxPriorityFeePerGas * 3;
 
                 //declare raw tx to withdraw
                 let rawWithdrawTx = {
                     from: this.GLOBAL.ownerAddress, 
-                    to: wethContract._address,
+                    to: wrappedContract._address,
                     maxFeePerGas: String(maxFeePerGas),
+                    maxPriorityFeePerGas: String(maxPriorityFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataWithdraw
                 };
@@ -228,14 +231,16 @@ class ERC20ops {
                 let contractInstance = await this.getERC20singleton(_token);
                 let dataApprove = contractInstance.methods.approve(_spender, Util.amountToBlockchain(_amount, _token.decimals)).encodeABI(); 
                 
-                //set max fee, 50% more current gas price
-                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 1.5);
+                //sets maxFeePerGas and maxPriorityFeePerGas, lesser values were generating 'transaction underpriced' error on Polygon mainnet 
+                let maxPriorityFeePerGas = await this.GLOBAL.web3Instance.eth.getGasPrice();
+                let maxFeePerGas = maxPriorityFeePerGas * 3;
 
                 //declare raw tx to approve
                 let rawApproveTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: contractInstance._address,
                     maxFeePerGas: String(maxFeePerGas),
+                    maxPriorityFeePerGas: String(maxPriorityFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_LOW,
                     data: dataApprove
                 };

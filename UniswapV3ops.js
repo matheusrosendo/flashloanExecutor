@@ -305,14 +305,16 @@ class UniswapV3ops {
                 //encode method 
                 let dataSwap = swapRouterContract.methods.exactInputSingle(swapParams).encodeABI(); 
                 
-                //set max fee, double current gas price 
-                let maxFeePerGas = parseInt((await this.GLOBAL.web3Instance.eth.getGasPrice()) * 2);
+                //sets maxFeePerGas and maxPriorityFeePerGas, lesser values were generating 'transaction underpriced' error on Polygon mainnet 
+                let maxPriorityFeePerGas = await this.GLOBAL.web3Instance.eth.getGasPrice();
+                let maxFeePerGas = maxPriorityFeePerGas * 3;
 
                 //declare raw tx to withdraw
                 let rawSwapTx = {
                     from: this.GLOBAL.ownerAddress, 
                     to: swapRouterAddress,
                     maxFeePerGas: String(maxFeePerGas),
+                    maxPriorityFeePerGas: String(maxPriorityFeePerGas),
                     gasLimit: BlockchainConfig.blockchain[this.GLOBAL.blockchain].GAS_LIMIT_HIGH,
                     data: dataSwap
                 };
