@@ -2,7 +2,7 @@
 ![Licence](https://img.shields.io/github/license/matheusrosendo/TokenizationLabFixedSupply)
 :warning: **Disclaimer**: That project is for educational purposes, use at your own risk
 
-> A Solidity / Javascript (node.js) based project aimed to read a json file containing flashloan input data and to execute flashloan taking loans from AAVE or DODO on Polygon or Ethereum and making swaps on UniswapV2, Curve, UniswapV2 exchanges or its offspring (Quick, Sushi, etc).
+> A Solidity / Javascript (node.js) based project aimed to execute flashloans on Polygon or Ethereum. It reads an input data file and execute a flashloan (from AAVE or DODO) making swaps on UniswapV2, Curve, UniswapV2 exchanges and/or its offspring (like quickswap, sushiswap, etc).
 
 ## Important files
 ```
