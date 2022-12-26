@@ -14,12 +14,12 @@ exports.BlockchainConfig = {
 			FORCE_GENERATE_PATH: false
 		}, 
 		EthereumForkUpdate1: {
-			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_4,
+			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_1,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8001",			
 			BLOCKCHAIN: "ethereum",	
 		},
 		EthereumForkUpdate2: {
-			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_4,
+			RPC_ARBITRAGEUR_PROVIDER: process.env.ETHEREUM_RPC_PROVIDER_0,
 			RPC_FLASHLOANER_PROVIDER: "http://127.0.0.1:8002",
 			BLOCKCHAIN: "ethereum",
 		},
